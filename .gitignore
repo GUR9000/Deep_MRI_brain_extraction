@@ -17,6 +17,9 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 
+# Ignore object files
+*.pyc
+
 # =========================
 # Operating System Files
 # =========================

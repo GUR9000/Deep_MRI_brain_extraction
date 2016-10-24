@@ -63,12 +63,12 @@ def train(list_training_data, list_training_labels, list_test_data,
     """
     import utils.Segmentation_trainer as Segmentation_trainer
     
-    assert len(list_training_data) == len(list_training_labels), "The total number of data files and label files differs"
+    assert len(list_training_data) == len(list_training_labels), "The total number of data files and label files differs: "+str(len(list_training_data))+' vs '+str(len(list_training_labels))
     autosave_frequency_minutes=60 # saves a copy of the CNN's parameters on the disk every X minutes
     autosave_n_files=100
 
 
-    # if anything weird happens during training, try a lower value here:
+    # if anything weird happens during training (e.g. loss increases by more than a factor of two), try a lower value
     Initial_learning_rate = learning_rate
 
     # probably no need to change these values:
@@ -78,11 +78,8 @@ def train(list_training_data, list_training_labels, list_test_data,
     b_use_data_augmentation = 1
     init_scale_factor = 3.
 
-    # the second number should be as large as possible to increase the efficiency when making predictions
-    # the only limit is RAM of the GPU
     
-    
-    n_labels_pred_per_dim = 3
+    n_labels_pred_per_dim = 4
 
 
     # number of classes in the data set - e.g. 2 means binary classification.
@@ -100,8 +97,12 @@ def train(list_training_data, list_training_labels, list_test_data,
     # this specifies the number of different filters in each layer:
     nnet_args["nof_filters"]     = [16, 24, 28, 34, 42, 50, 50,   n_classes]
 
-    bDropoutEnabled = 0
-    num_patches_per_batch = 2  # a better setting is e.g. 4 if you have enough GPU memory or use the CPU
+
+
+    gradient_clipping  = True
+    bWeightDecay       = True
+    bDropoutEnabled    = 0
+    num_patches_per_batch = 3  # a better setting is e.g. 4 if you have enough GPU memory or use the CPU
     input_to_cnn_depth = patch_depth #use 2 if you enable the pseudo-recursion
 
 
@@ -123,7 +124,9 @@ def train(list_training_data, list_training_labels, list_test_data,
                                      actfunc = "relu",
                                      data_init_preserve_channel_scaling=0, 
                                      use_fragment_pooling = use_fragment_pooling,
-                                     auto_threshold_labels = auto_threshold_labels)
+                                     auto_threshold_labels = auto_threshold_labels,
+                                     gradient_clipping = gradient_clipping,
+                                     bWeightDecay = bWeightDecay)
 
     cnn.randomize_weights(scale_w = init_scale_factor)
 
@@ -148,7 +151,7 @@ def train(list_training_data, list_training_labels, list_test_data,
 def findall(paths):
     rlist=[]
     for x in paths:
-        rlist += data_and_CV_handler.list_files(x) if data_and_CV_handler.os.path.isdir(x) else [x]
+        rlist += data_and_CV_handler.list_files(x, contains_not='.hdr') if data_and_CV_handler.os.path.isdir(x) else [x]
     return rlist
 
 
@@ -157,14 +160,11 @@ def tolist(x):
 
 
 def main():
-#    default_data = 'U:/DATA/OASIS/disc1/DATA'
-#    default_labels = 'U:/DATA/OASIS/disc1/DATA'
-#    parser.add_argument('--data', default=default_data, type=str, nargs='+', help='Any number and combination of paths to files or folders that will be used as input-data for training the CNN')
-#    parser.add_argument('--labels', default=default_labels, type=str, nargs='+', help='Any number and combination of paths to files or folders that will be used as target for training the CNN (values must be 0/1)')
-
     parser = argparse.ArgumentParser(description='Main module to train a 3D-CNN for segmentation')
+    
     parser.add_argument('--data', required=True, type=str, nargs='+', help='Any number and combination of paths to files or folders that will be used as input-data for training the CNN')
     parser.add_argument('--labels', required=True, type=str, nargs='+', help='Any number and combination of paths to files or folders that will be used as target for training the CNN (values must be 0/1)')
+    
     parser.add_argument('--lr', type=float, default=1e-5,  help='initial learning rate (step size) for training the CNN')
     parser.add_argument('--name', default='deep3Dtrain_model_1', type=str,  help='name of the model (affects filenames) -- specify the same name when using deep3Dtest.py')
     parser.add_argument('--convertlabels', default=1, type=int, nargs=1, help='if labels are not binary: this will convert values >1 to 1')
@@ -173,7 +173,7 @@ def main():
     #print args
     data = findall(tolist(args.data))
     labels = findall(tolist(args.labels))
-    load_previous_save = 0
+    load_previous_save = 1
 
 
     train(list_training_data=data,    

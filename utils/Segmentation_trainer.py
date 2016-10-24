@@ -54,10 +54,9 @@ def train_net(cnn, patchCreator, LR_start , num_patches_per_batch = 1,
               momentum = 0.9, save_name="auto", b_no_test_set=False,
               b_use_ext_error=0,
               autosave_frequency_minutes=60, autosave_n_files=10,
-              b_use_data_augmentation = False, b_use_lesser_augmentation = False,
-              slope_parameter_total_iters_to_fullRELU = 8000):
+              b_use_data_augmentation = False, b_use_lesser_augmentation = False):
 
-    LR_end = LR_start / 10.
+    LR_end = LR_start / 10.   # this is ignored
     training_time_minutes = 0 # this is ignored
     LR_sched    = utilities.LR_scheduler(cnn, max_training_time_minutes=60*30, max_training_steps=None, LR_start=LR_start,
                                          automated_LR_scaling_enabled=True, automated_LR_scaling_magnitude=0.5,
@@ -93,9 +92,7 @@ def train_net(cnn, patchCreator, LR_start , num_patches_per_batch = 1,
         dlm = patchCreator.makeTrainingPatch(batchsize=batchsize)
         data , labels_proto = dlm[0], dlm[1]
         data = np.zeros((num_patches_per_batch,)+data.shape[1:],"float32")
-        print "labels.shape =",labels_proto.shape
         labels_proto = np.zeros((num_patches_per_batch,)+labels_proto.shape[1:], labels_proto.dtype)
-        print "labels_proto.shape =",labels_proto.shape
 
 
     print "data_augmentation =",b_use_data_augmentation
@@ -147,7 +144,14 @@ def train_net(cnn, patchCreator, LR_start , num_patches_per_batch = 1,
 
 
 
-                xnll = cnn.training_step( data,labels, mode=training_mode)
+                xnll = cnn.training_step(data, labels, mode=training_mode)
+                
+#                ret = cnn.debug_gradients_function(data,labels)
+#                print 'len(ret)',len(ret)
+#                for gr in ret:
+#                    print np.min(gr), np.mean(np.abs(gr)), np.median(np.abs(gr)), np.max(gr)
+#                print
+                
 
                 trailing_mean_NLL = 0.995* trailing_mean_NLL + 0.005* xnll
 
@@ -165,7 +169,7 @@ def train_net(cnn, patchCreator, LR_start , num_patches_per_batch = 1,
 
 
 
-        except:
+        except KeyboardInterrupt:
             print "Training terminated via ctrl+C"
             break
 
@@ -180,7 +184,9 @@ def train_net(cnn, patchCreator, LR_start , num_patches_per_batch = 1,
 def Build3D(nnet_args, n_labels_per_batch = 300,  patch_depth = 1, actfunc='relu',
             bDropoutEnabled = False, notrain=0, input_to_cnn_depth = 1,
             override_data_set_filenames=None, num_patches_per_batch = 1,
-            data_init_preserve_channel_scaling = 1, use_fragment_pooling = 0, auto_threshold_labels=False):
+            data_init_preserve_channel_scaling = 1, 
+            use_fragment_pooling = 0, auto_threshold_labels=False,
+            gradient_clipping = True, bWeightDecay = True):
     """build net, load samples (patchCreator)"""
 
 
@@ -209,7 +215,7 @@ def Build3D(nnet_args, n_labels_per_batch = 300,  patch_depth = 1, actfunc='relu
     print 'Building CNN...'
     cnn = MixedConvNN( patchCreator.CNET_Input_Size, ImageDepth = input_to_cnn_depth, InputImageDimensions = 3,
                       bDropoutEnabled_ = bDropoutEnabled, bSupportVariableBatchsize=0, 
-                      batchsize=num_patches_per_batch, verbose = 0)
+                      batchsize=num_patches_per_batch, verbose = 0, bWeightDecay = bWeightDecay)
 
 
     for i,nf,fs,pf in zip(range(len(nof_filters)),nof_filters, filter_sizes, pooling_factors):
@@ -222,6 +228,8 @@ def Build3D(nnet_args, n_labels_per_batch = 300,  patch_depth = 1, actfunc='relu
 
     cnn.use_fragment_pooling = use_fragment_pooling
 
+    if gradient_clipping:
+        cnn.enable_gradient_clipping(0.02)
 
     print "Compiling Output Functions"
     cnn.CompileOutputFunctions(b_isRegression = False,
@@ -229,7 +237,8 @@ def Build3D(nnet_args, n_labels_per_batch = 300,  patch_depth = 1, actfunc='relu
                                b_regression_with_margin=0, margin_reweighted_error=0,
                                override_training_loss_function=None)
 
-    cnn.CompileDebugFunctions()
+    
+    cnn.CompileDebugFunctions(gradients=0)
     print "done: Build3D()"
     return cnn, patchCreator
 

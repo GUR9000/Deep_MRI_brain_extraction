@@ -70,7 +70,6 @@ def predict_all(cnn, patchCreator, apply_cc_filtering, set_selection = 'all',
                             output_filetype = output_filetype, save_prob_map = save_prob_map)
 
         
-        file_reading.save_text(save_as+"TIMINGS_times.txt", "  ".join([str(tmp) for tmp in timings]))
 
     print
 
@@ -143,7 +142,7 @@ def runNetOnSlice(cnn, patchCreator, DATA, n_classes=0, channel2_data=None):
 
 
 def run_Net_on_Block(cnn, DATA, patchCreator, bool_predicts_on_softmax=None,
-                     added_data="auto_detect", second_input_data=None):
+                     added_data="auto_detect", second_input_data=None, rescale_predictions_to_max_range = True):
     """ :DATA: is the original input data. This function will pad it!
         :second_input_data: is assumed to apply to the LABELS/PREDICTIONS and not to the input of the NNet"""
 
@@ -193,8 +192,9 @@ def run_Net_on_Block(cnn, DATA, patchCreator, bool_predicts_on_softmax=None,
             newd[...,0]=DATA
             newd[...,1:]=added_data
         DATA = newd
+    
+    
     print "Predicting data of shape:",DATA.shape
-
 
     if patchCreator.padded_once==False:
         DATA = helper.greyvalue_data_padding(DATA, offset_l, offset_r)
@@ -231,6 +231,12 @@ def run_Net_on_Block(cnn, DATA, patchCreator, bool_predicts_on_softmax=None,
                 assert ret.ndim==4 #standard case
                 ret_3d_cube[:,offset[0]:ret_size_per_runonslice+offset[0], offset[1]:ret_size_per_runonslice+offset[1], offset[2]:ret_size_per_runonslice+offset[2]] = ret#[0,...]
     sav = ret_3d_cube[:,:target_labels_per_dim[0],:target_labels_per_dim[1],:target_labels_per_dim[2]]
+    
+    sav = sav[1] # pick class 1
+    if rescale_predictions_to_max_range:
+        sav = (sav-sav.min())/(sav.max()+1e-7) # rescale the predicted probabilities (assuming that there is *something* positive in the data, otherwise this is quite bad...)
+    
+
     return sav
 
 
@@ -243,13 +249,12 @@ def remove_small_conneceted_components(raw):
     data = raw.copy()
     # binarize image
     data[data>0.5] = 1
-#    data[data!=0] = 1
     cc, num_components = ndimage.label(np.uint8(data))
     cc=cc.astype("uint16")
     vals = np.bincount(cc.ravel())
     sizes = list(vals)
     try:
-        second_largest = sorted(sizes)[::-1][1]
+        second_largest = sorted(sizes)[::-1][1]       
     except:
         return raw.copy()
     data[...] = 0
@@ -307,12 +312,15 @@ def run_Net_on_multiple(patchCreator, input_to_cnn_depth=1, cnn = None, opt_list
     t0 = time.clock()
     sav = run_Net_on_Block(cnn, DATA, patchCreator, bool_predicts_on_softmax=1,
                            second_input_data = second_input_data) #this one does all the work
+    
+    
     t1 = time.clock()
     timings.append(t1-t0)
     print 'timings (len',len(timings),')',np.mean(timings),'+-',np.std(timings)
     if apply_cc_filtering:
         sav = remove_small_conneceted_components(sav)
-    
+        sav = 1 - remove_small_conneceted_components(1 - sav)
+                
     if save_prob_map:
         if output_filetype == 'h5':
             file_reading.save_h5(this_save_name+'.h5',sav)
@@ -325,10 +333,13 @@ def run_Net_on_multiple(patchCreator, input_to_cnn_depth=1, cnn = None, opt_list
             raise NotImplementedError(output_filetype)
     
     sav = (sav>0.5).astype('int8')
+    
     if output_filetype == 'h5':
         file_reading.save_h5(this_save_name+'_mask.h5',sav)
     elif output_filetype == 'nifti':
         file_reading.save_nifti(this_save_name+'_mask.nii.gz',sav)
+        
+        
     elif output_filetype == 'numpy':
         file_reading.mkdir(this_save_name+'_mask.npy')
         np.save(this_save_name+'_mask.npy', sav)
@@ -344,7 +355,7 @@ def run_Net_on_multiple(patchCreator, input_to_cnn_depth=1, cnn = None, opt_list
         return run_Net_on_multiple(patchCreator, input_to_cnn_depth=input_to_cnn_depth, cnn = cnn, opt_list_index=opt_list_index+1, 
                                    str_data_selection=str_data_selection, opt_list_predict_all_data=opt_list_predict_all_data, 
                                    opt_random_ID=opt_random_ID, save_file_prefix=save_file_prefix, output_filetype=output_filetype,
-                                   save_prob_map=save_prob_map)
+                                   save_prob_map=save_prob_map, apply_cc_filtering = apply_cc_filtering)
     return None
 
 

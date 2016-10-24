@@ -141,7 +141,7 @@ def show_multiple_figures_add(fig, n, i, image, title, isGray=True):
 class MixedConvNN():
     def __init__(self,input_image_size, batchsize=None, ImageDepth = 1,
                  InputImageDimensions = None, bSupportVariableBatchsize=True,
-                 bDropoutEnabled_ = False, bInputIsFlattened=False, verbose = 1):
+                 bDropoutEnabled_ = False, bInputIsFlattened=False, verbose = 1, bWeightDecay = False):
         """ Otherwise:
             Assuming that <input_image_size> == Image_width == Image_height UNLESS it is a tuple
             <InputImageDimensions> my be
@@ -224,18 +224,19 @@ class MixedConvNN():
 
         self.output_stride = 1 #for fragment-max-pooling (fast segmentation/sliding window)
 
+        self.bWeightDecay = bWeightDecay
         self.CompileSGD   = NN_Optimizers.CompileSGD
         self.CompileRPROP = NN_Optimizers.CompileRPROP
-        self.compileCG    = NN_Optimizers.compileCG
-        self.CompileARP   = NN_Optimizers.CompileARP
+        #self.compileCG    = NN_Optimizers.compileCG
+        #self.CompileARP   = NN_Optimizers.CompileARP
         self.CompileADADELTA   = NN_Optimizers.CompileADADELTA
 
 
 
-        self.trainingStepCG_g = NN_Optimizers.trainingStepCG_g
-        self._lineSearch_g    = NN_Optimizers._lineSearch_g
-        self._lineSearch      = NN_Optimizers._lineSearch
-        self._trainingStepCG  = NN_Optimizers._trainingStepCG
+#        self.trainingStepCG_g = NN_Optimizers.trainingStepCG_g
+#        self._lineSearch_g    = NN_Optimizers._lineSearch_g
+#        self._lineSearch      = NN_Optimizers._lineSearch
+#        self._trainingStepCG  = NN_Optimizers._trainingStepCG
 
 
 
@@ -244,7 +245,6 @@ class MixedConvNN():
         """ reset weights to initial values (calls randomize_weights() on each layer)"""
 
         if b_ONLY_reset_momenta==False:
-            print "CNN: Randomizing weigts"
             for lay in self.layers + self.output_layers:
                 try:
                     lay.randomize_weights(scale_w = scale_w)
@@ -252,7 +252,6 @@ class MixedConvNN():
                     print 'randomize_weights() failed in',lay
 
         if b_reset_momenta:
-            print "CNN: resetting momenta"
             for para,rp,lg in zip(self.params, self.RPROP_LRs, self.last_grads):
                 sp = para.get_value().shape
                 rp.set_value( 1e-3*np.ones(sp,dtype=theano.config.floatX) , borrow=0)
@@ -545,7 +544,9 @@ class MixedConvNN():
 
 
 
-
+    def enable_gradient_clipping(self, f_clip_at = 5e-3):
+        self._GradientClipping = True
+        self._GradientClipping_limit = f_clip_at
 
 
 
@@ -555,7 +556,7 @@ class MixedConvNN():
                                  SGD_momentum_=0.9, b_Override_only_SGD=False, bOverride_OnlyGPROP=False,
                                  bOverride_OnlyRPORP=False, b_Override_only_RMSPROP=False, bWeightDecay=False,
                                  bHighActivationPenalty=False, b_layerwise_LR= False, b_external_top_error=False,
-                                 b_use_clipped_gradients = False, f_clip_at = 5e-5):
+                                 b_use_clipped_gradients = False, f_clip_at = 5e-3):
         """ creates the functions for the last layer of <self.layers>
             trains all parameters included in <self.params>, i.e. ignoring the layer structure
 
@@ -810,7 +811,7 @@ class MixedConvNN():
         if mode==1:
 #            t0=time.clock()
             if hasattr(self,"train_model_SGD_a")== False or self.train_model_SGD_a==None:
-                self.CompileSGD(self)
+                self.CompileSGD(self, bWeightDecay=self.bWeightDecay)
             trainf = self.train_model_SGD_a_ext if b_extended_output else self.train_model_SGD_a
             if self.bUseModulatedNLL:
                 nll = trainf(data,labels,modulation)
@@ -933,7 +934,6 @@ class MixedConvNN():
             if len(layer.params):
                 shape_nfo.append(layer.params[0].get_value(borrow=True).shape)
 
-        print "SHAPE is =",shape_nfo
         cPickle.dump(shape_nfo, f, protocol = protocol)
 
         for layer in layers_to_save:#self.layers:  #every layer.params is a list containing two references to theano-shared variables

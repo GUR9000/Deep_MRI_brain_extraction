@@ -111,7 +111,6 @@ def predict(list_training_data, list_training_labels, list_test_data,
                                      use_fragment_pooling = use_fragment_pooling,
                                      auto_threshold_labels = auto_threshold_labels)
 
-#    print 'WARNING: load loading save\n\n'*20
     cnn.LoadParameters(save_name)
     t0 = time.clock()
     
@@ -155,18 +154,17 @@ def tolist(x):
 
 
 def main():
-#    default_data = 'U:/DATA/IBSR/data'
     
     parser = argparse.ArgumentParser(description='Main module to apply an already trained 3D-CNN to segment data')
-#    parser.add_argument('-i', default=default_data, type=str, nargs='+', help='Any number and combination of paths to files or folders that will be used as input-data for training the CNN')
+    
     parser.add_argument('-i', type=str, nargs='+', help='Any number and combination of paths to files or folders that will be used as input-data for training the CNN', required=True)
-
-    parser.add_argument('-o', default='predictions/', type=str, help='output path for the predicted brain masks')
     parser.add_argument('-n', default='OASIS_ISBR_LPBA40__trained_CNN.save', type=str,  help='name of the trained/saved CNN model (can be either a folder or .save file)')
+    parser.add_argument('-o', default='predictions/', type=str, help='output path for the predicted brain masks')
+    
     parser.add_argument('-c', default=True, type=bool,  help='Filter connected components: removes all connected components but the largest two (i.e. background and brain) [default=True]')
     parser.add_argument('-f', default='nifti', type=str,  help='File saving format for predictions. Options are "h5", "nifti", "numpy" [default=nifti]')
     parser.add_argument('-prob', default=1, type=bool,  help='save probability map as well')
-    parser.add_argument('-gridsize', default=16, type=int,  help='size of CNN output grid (optimal: largest possible divisor of the data-volume axes that still fits into GPU memory). This setting heavily affects prediction times: larger values are better. Values that are too large will cause a failure due to too little GPU-memory.')
+    parser.add_argument('-gridsize', default=32, type=int,  help='size of CNN output grid (optimal: largest possible divisor of the data-volume axes that still fits into GPU memory). This setting heavily affects prediction times: larger values are better. Values that are too large will cause a failure due to too little GPU-memory.')
     
     
     args = parser.parse_args()

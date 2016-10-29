@@ -96,18 +96,15 @@ def train(list_training_data, list_training_labels, list_test_data,
     nnet_args["pooling_factors"] = [2, 1, 1,  1, 1, 1, 1, 1]
     # this specifies the number of different filters in each layer:
     nnet_args["nof_filters"]     = [16, 24, 28, 34, 42, 50, 50,   n_classes]
-
-<<<<<<< HEAD
-
-
+    
     gradient_clipping  = True
     bWeightDecay       = True
     bDropoutEnabled    = 0
     num_patches_per_batch = 3  # a better setting is e.g. 4 if you have enough GPU memory or use the CPU
-=======
+    
     bDropoutEnabled = 0
     num_patches_per_batch = 4  # a better setting is e.g. 4 if you have enough GPU memory or use the CPU, otherwise try 2
->>>>>>> origin/master
+    
     input_to_cnn_depth = patch_depth #use 2 if you enable the pseudo-recursion
 
 

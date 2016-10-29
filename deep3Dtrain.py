@@ -175,7 +175,7 @@ def main():
     #print args
     data = findall(tolist(args.data))
     labels = findall(tolist(args.labels))
-    load_previous_save = 1
+    load_previous_save = False
 
 
     train(list_training_data=data,    

@@ -66,7 +66,7 @@ def predict(list_training_data, list_training_labels, list_test_data,
     assert len(list_training_data) == len(list_training_labels)
     
     save_name = filter_saves(save_name)
-    
+    print 'using model-parameters:',save_name
     patch_depth = 1
     use_fragment_pooling = 0
 
@@ -157,7 +157,7 @@ def main():
     
     parser = argparse.ArgumentParser(description='Main module to apply an already trained 3D-CNN to segment data')
     
-    parser.add_argument('-i', type=str, nargs='+', help='Any number and combination of paths to files or folders that will be used as input-data for training the CNN', required=True)
+    parser.add_argument('-i', type=str, nargs='+', required=True, help='Any number and combination of paths to files or folders that will be used as input-data for training the CNN')
     parser.add_argument('-n', default='OASIS_ISBR_LPBA40__trained_CNN.save', type=str,  help='name of the trained/saved CNN model (can be either a folder or .save file)')
     parser.add_argument('-o', default='predictions/', type=str, help='output path for the predicted brain masks')
     
@@ -174,10 +174,11 @@ def main():
     assert len(data)>0, 'Could not find the data. Please either pass all paths to the individual files or place them in a single folder and pass the path to this folder as "-i" argument'
     assert args.f in ['nifti', 'h5', 'numpy']
     
+    
     predict(list_training_data=[],    
          list_training_labels=[],    
          list_test_data=data,            
-         save_name=tolist(args.n)[0],
+         save_name=tolist(args.n),
          apply_cc_filtering = bool(args.c),
          output_path = str(args.o),
          output_filetype = args.f,

@@ -181,7 +181,7 @@ def main():
     train(list_training_data=data,    
          list_training_labels=labels,    
          list_test_data=[],            
-         save_name=tolist(args.name)[0],
+         save_name=tolist(args.name),
          learning_rate=args.lr,
          load_previous_save = load_previous_save,
          auto_threshold_labels=tolist(args.convertlabels)[0])

@@ -64,8 +64,8 @@ def predict_all(cnn, patchCreator, apply_cc_filtering, set_selection = 'all',
         
         timings=[]
         run_Net_on_multiple(patchCreator, input_to_cnn_depth=input_to_cnn_depth, cnn = cnn, 
-                            str_data_selection= set_selection, DATA=None, opt_random_ID='', 
-                            save_file_prefix = save_as, timings=timings,
+                            str_data_selection= set_selection,  
+                            save_file_prefix = save_as, 
                             apply_cc_filtering = apply_cc_filtering,
                             output_filetype = output_filetype, save_prob_map = save_prob_map)
 
@@ -138,6 +138,11 @@ def runNetOnSlice(cnn, patchCreator, DATA, n_classes=0, channel2_data=None):
                 for c in range(n_classes):
                     pred[c, x::CNET_stride[0], y::CNET_stride[1]] = rr[:,c].reshape((pred_size[0],pred_size[1]))
     return pred
+
+
+
+
+
 
 
 
@@ -236,8 +241,13 @@ def run_Net_on_Block(cnn, DATA, patchCreator, bool_predicts_on_softmax=None,
     if rescale_predictions_to_max_range:
         sav = (sav-sav.min())/(sav.max()+1e-7) # rescale the predicted probabilities (assuming that there is *something* positive in the data, otherwise this is quite bad...)
     
-
     return sav
+
+
+
+
+
+
 
 
 
@@ -267,60 +277,55 @@ def remove_small_conneceted_components(raw):
 
 
 
-def run_Net_on_multiple(patchCreator, input_to_cnn_depth=1, cnn = None, opt_list_index=None,
-                        opt_list_predict_all_data=True, str_data_selection="all",
-                        opt_random_ID=None, DATA=None, save_file_prefix="", timings=[], 
+def run_Net_on_multiple(patchCreator, input_to_cnn_depth=1, cnn = None, 
+                        str_data_selection="all", save_file_prefix="", 
                         apply_cc_filtering = False, output_filetype = 'h5', save_prob_map = False):
     """ run runNetOnSlice() on neighbouring blocks of data.
         if opt_cnn is not none, it should point to a CNN / Net that will be used.
         if patchCreator contains a list of 3D data blocks (patchCreator.second_input_data) then it will be used as second input to cnn.output()
     """
+    assert str_data_selection in ["all", "train", "test"]
+    MIN = 0 if str_data_selection in ["all", "train"] else patchCreator.training_set_size
+    MAX = patchCreator.training_set_size if str_data_selection =="train" else len(patchCreator.data)
     
     second_input_data = None
-    if DATA==None:
-        if type(patchCreator.data)!=type([]) and (patchCreator.data.ndim)>=3:
-            DATA = patchCreator.data
-        elif type(patchCreator.data)==type([]):
-            if opt_list_index==None:
-                assert str_data_selection in ["all", "train", "test"]
-                opt_list_index=0 if str_data_selection in ["all", "train"] else patchCreator.training_set_size
-            if ((opt_list_index>=len(patchCreator.data)) and (str_data_selection in  ["all", "test"])) or ((opt_list_index>=patchCreator.training_set_size) and (str_data_selection =="train")):
-                print "Done. Final index is",opt_list_index
-                return 0
-            DATA = patchCreator.data[opt_list_index]
-            if hasattr(patchCreator,"second_input_data"):
-                second_input_data = patchCreator.second_input_data[opt_list_index]
+    
+    DATA = patchCreator.data
+    timings=[]
+#    if hasattr(patchCreator,"second_input_data"):
+#        second_input_data = patchCreator.second_input_data[opt_list_index]
+    
+    for opt_list_index in range(MIN, MAX):
+        
+        print "-"*30
+        print "@",opt_list_index+1,"of max.",len(patchCreator.data)
+        postfix = "" if opt_list_index==None else "_" + utilities.extract_filename(patchCreator.file_names[opt_list_index])[1] if isinstance(patchCreator.file_names[0], str) else str(patchCreator.file_names[opt_list_index]) if not isinstance(patchCreator.file_names[opt_list_index], tuple) else utilities.extract_filename(patchCreator.file_names[opt_list_index][0])[1]
+        if opt_list_index is not None:
+            is_training = "_train" if (opt_list_index < patchCreator.training_set_size) else "_test"
         else:
-            print "\nError: Unsupported input data; shape is",patchCreator.data.shape
-    else:
-        if DATA.ndim==5:
-            assert DATA.shape[0]==1
-            DATA=DATA[0]
-    print "-"*30
-    print "@",opt_list_index+1,"of max.",len(patchCreator.data)
-    if opt_random_ID==None:
-        opt_random_ID = str(np.random.randint(1e7,1e8-1))
-
-    postfix = "" if opt_list_index==None else "_" + utilities.extract_filename(patchCreator.file_names[opt_list_index])[1] if type(patchCreator.file_names[0])==type("blubb") else str(patchCreator.file_names[opt_list_index]) if type(patchCreator.file_names[opt_list_index])!=type((1,)) else utilities.extract_filename(patchCreator.file_names[opt_list_index][0])[1]
-    if opt_list_index is not None:
-        is_training = "_train" if (opt_list_index < patchCreator.training_set_size) else "_test"
-    else:
-        is_training=""
-    this_save_name = save_file_prefix+"prediction"+postfix+"_"+is_training
+            is_training=""
+        this_save_name = save_file_prefix+"prediction"+postfix+"_"+is_training
+        
+        t0 = time.clock()
+        sav = run_Net_on_Block(cnn, DATA[opt_list_index], patchCreator, bool_predicts_on_softmax=1,
+                               second_input_data = second_input_data) #this one does all the work
+        
+        t1 = time.clock()
+        timings.append(t1-t0)
+        if apply_cc_filtering:
+            sav = remove_small_conneceted_components(sav)
+            sav = 1 - remove_small_conneceted_components(1 - sav)
+        
+        save_pred(sav, this_save_name, output_filetype, save_prob_map)
     
-
-    t0 = time.clock()
-    sav = run_Net_on_Block(cnn, DATA, patchCreator, bool_predicts_on_softmax=1,
-                           second_input_data = second_input_data) #this one does all the work
-    
-    
-    t1 = time.clock()
-    timings.append(t1-t0)
     print 'timings (len',len(timings),')',np.mean(timings),'+-',np.std(timings)
-    if apply_cc_filtering:
-        sav = remove_small_conneceted_components(sav)
-        sav = 1 - remove_small_conneceted_components(1 - sav)
-                
+    return None
+
+
+
+
+def save_pred(prediction, this_save_name, output_filetype, save_prob_map):
+    sav = prediction
     if save_prob_map:
         if output_filetype == 'h5':
             file_reading.save_h5(this_save_name+'.h5',sav)
@@ -347,16 +352,108 @@ def run_Net_on_multiple(patchCreator, input_to_cnn_depth=1, cnn = None, opt_list
         raise NotImplementedError(output_filetype)
 
     print "File saved as:",this_save_name
+    
+    return 0
 
-    del DATA
-    del sav
 
-    if opt_list_predict_all_data==True and opt_list_index!=None:
-        return run_Net_on_multiple(patchCreator, input_to_cnn_depth=input_to_cnn_depth, cnn = cnn, opt_list_index=opt_list_index+1, 
-                                   str_data_selection=str_data_selection, opt_list_predict_all_data=opt_list_predict_all_data, 
-                                   opt_random_ID=opt_random_ID, save_file_prefix=save_file_prefix, output_filetype=output_filetype,
-                                   save_prob_map=save_prob_map, apply_cc_filtering = apply_cc_filtering)
-    return None
+
+
+
+
+
+
+#def run_Net_on_multiple__recursive(patchCreator, input_to_cnn_depth=1, cnn = None, opt_list_index=None,
+#                        opt_list_predict_all_data=True, str_data_selection="all",
+#                        opt_random_ID=None, DATA=None, save_file_prefix="", timings=[], 
+#                        apply_cc_filtering = False, output_filetype = 'h5', save_prob_map = False):
+#    """ run runNetOnSlice() on neighbouring blocks of data.
+#        if opt_cnn is not none, it should point to a CNN / Net that will be used.
+#        if patchCreator contains a list of 3D data blocks (patchCreator.second_input_data) then it will be used as second input to cnn.output()
+#    """
+#    
+#    second_input_data = None
+#    if DATA==None:
+#        if type(patchCreator.data)!=type([]) and (patchCreator.data.ndim)>=3:
+#            DATA = patchCreator.data
+#        elif type(patchCreator.data)==type([]):
+#            if opt_list_index==None:
+#                assert str_data_selection in ["all", "train", "test"]
+#                opt_list_index=0 if str_data_selection in ["all", "train"] else patchCreator.training_set_size
+#            if ((opt_list_index>=len(patchCreator.data)) and (str_data_selection in  ["all", "test"])) or ((opt_list_index>=patchCreator.training_set_size) and (str_data_selection =="train")):
+#                print "Done. Final index is",opt_list_index
+#                return 0
+#            DATA = patchCreator.data[opt_list_index]
+#            if hasattr(patchCreator,"second_input_data"):
+#                second_input_data = patchCreator.second_input_data[opt_list_index]
+#        else:
+#            print "\nError: Unsupported input data; shape is",patchCreator.data.shape
+#    else:
+#        if DATA.ndim==5:
+#            assert DATA.shape[0]==1
+#            DATA=DATA[0]
+#    print "-"*30
+#    print "@",opt_list_index+1,"of max.",len(patchCreator.data)
+#    if opt_random_ID==None:
+#        opt_random_ID = str(np.random.randint(1e7,1e8-1))
+#
+#    postfix = "" if opt_list_index==None else "_" + utilities.extract_filename(patchCreator.file_names[opt_list_index])[1] if type(patchCreator.file_names[0])==type("blubb") else str(patchCreator.file_names[opt_list_index]) if type(patchCreator.file_names[opt_list_index])!=type((1,)) else utilities.extract_filename(patchCreator.file_names[opt_list_index][0])[1]
+#    if opt_list_index is not None:
+#        is_training = "_train" if (opt_list_index < patchCreator.training_set_size) else "_test"
+#    else:
+#        is_training=""
+#    this_save_name = save_file_prefix+"prediction"+postfix+"_"+is_training
+#    
+#
+#    t0 = time.clock()
+#    sav = run_Net_on_Block(cnn, DATA, patchCreator, bool_predicts_on_softmax=1,
+#                           second_input_data = second_input_data) #this one does all the work
+#    
+#    
+#    t1 = time.clock()
+#    timings.append(t1-t0)
+#    print 'timings (len',len(timings),')',np.mean(timings),'+-',np.std(timings)
+#    if apply_cc_filtering:
+#        sav = remove_small_conneceted_components(sav)
+#        sav = 1 - remove_small_conneceted_components(1 - sav)
+#                
+#    if save_prob_map:
+#        if output_filetype == 'h5':
+#            file_reading.save_h5(this_save_name+'.h5',sav)
+#        elif output_filetype == 'nifti':
+#            file_reading.save_nifti(this_save_name+'.nii.gz',sav)
+#        elif output_filetype == 'numpy':
+#            file_reading.mkdir(this_save_name+'.npy')
+#            np.save(this_save_name, sav)
+#        else:
+#            raise NotImplementedError(output_filetype)
+#    
+#    sav = (sav>0.5).astype('int8')
+#    
+#    if output_filetype == 'h5':
+#        file_reading.save_h5(this_save_name+'_mask.h5',sav)
+#    elif output_filetype == 'nifti':
+#        file_reading.save_nifti(this_save_name+'_mask.nii.gz',sav)
+#        
+#        
+#    elif output_filetype == 'numpy':
+#        file_reading.mkdir(this_save_name+'_mask.npy')
+#        np.save(this_save_name+'_mask.npy', sav)
+#    else:
+#        raise NotImplementedError(output_filetype)
+#
+#    print "File saved as:",this_save_name
+#
+#    del DATA
+#    del sav
+#
+#    if opt_list_predict_all_data==True and opt_list_index!=None:
+#        return run_Net_on_multiple(patchCreator, input_to_cnn_depth=input_to_cnn_depth, cnn = cnn, opt_list_index=opt_list_index+1, 
+#                                   str_data_selection=str_data_selection, opt_list_predict_all_data=opt_list_predict_all_data, 
+#                                   opt_random_ID=opt_random_ID, save_file_prefix=save_file_prefix, output_filetype=output_filetype,
+#                                   save_prob_map=save_prob_map, apply_cc_filtering = apply_cc_filtering)
+#    return None
+
+
 
 
 

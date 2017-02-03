@@ -43,7 +43,7 @@ The presented code is a modified version of the work used for the above mentione
 
 We strongly suggest using a GPU if speed is of necessity, as speedups of ~ 40x and more over CPU mode are typical. Nevertheless, the code will run on both CPU or GPU without modification. If you chose to use a GPU, make sure to use a NVIDIA model (these are the only cards supporting CUDA).
 
-$ Prerequisites
+#### Prerequisites
 
 ** Python 2:
 We recommend the use of Anaconda (https://www.continuum.io/downloads), especially for Windows users.
@@ -83,7 +83,7 @@ It is still tricky to get it to work, as Theano doesn't properly support Windows
 1) [in console] conda install h5py or pip install h5py
 
 
-§ Configuring Theano
+#### Configuring Theano
 
 In order to configue theano to automatically use the GPU, create a file named .theanorc (.theanorc.txt for Windows users) in your user's home directory and add the following three lines to it -- this is a minimalistic setup, many more options are available:
 
@@ -93,7 +93,7 @@ device=gpu0
 
 You can replace "gpu0" with e.g. "cpu", or select another gpu using "gpu1" (provided you have two GPUs), etc.
 
-§ Where can I obtain the data used in the publication
+#### Where can I obtain the data used in the publication
 
 https://www.nitrc.org/projects/ibsr
 http://www.oasis-brains.org/app/action/BundleAction/bundle/OAS1_CROSS
@@ -112,7 +112,7 @@ If you use data from different scanners that produce data with varying orientati
 
 ## IV. Examples
 
-§ Brain mask prediction using a pre-trained CNN
+#### Brain mask prediction using a pre-trained CNN
 
 python deep3Dpredict.py --help
 usage: deep3Dpredict.py [-h] -i I [I ...] [-o O] [-n N] [-c C] [-f F]
@@ -143,7 +143,7 @@ optional arguments:
 python deep3Dpredict.py -n OASIS_ISBR_LPBA40__trained_CNN.save -i /home/share/brain_mask/__NEW__/ibsr_data/02/IBSR_02_ana.nii.gz -gridsize 16
  
 
-§ Train a new CNN (with your data)
+#### Train a new CNN (with your data)
 
 python deep3Dtrain.py --help
 usage: deep3Dtrain.py [-h] --data DATA [DATA ...] --labels LABELS [LABELS ...]

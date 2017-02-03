@@ -30,14 +30,14 @@ Readme version 1.0 - October 2016
 
 """
 
-I. Introduction
+## I. Introduction
 
 Brain extraction from magnetic resonance imaging (MRI) is crucial for many neuroimaging workflows. However, the anatomical variability and the difference in intensity distributions of MRI scans make the development of a one-fits-all solution very challenging. This work is based on a 3D convolutional deep learning architecture that deals with arbitrary MRI modalities (T1, T2, FLAIR,DWI, ...), contrast-enhanced scans and pathologically altered tissues, when trained appropriately, i.e. tuned to the specific needs and imaging criteria present at your institution.
 
 The presented code is a modified version of the work used for the above mentioned publication. There have been some alterations that might affect performance and speed. 
 
 
-II. Prerequesites & Installation
+## II. Prerequesites & Installation
 
 We strongly suggest using a GPU if speed is of necessity, as speedups of ~ 40x and more over CPU mode are typical. Nevertheless, the code will run on both CPU or GPU without modification. If you chose to use a GPU, make sure to use a NVIDIA model (these are the only cards supporting CUDA).
 
@@ -102,13 +102,13 @@ If you use this data please cite the corresponding publications and comply with 
 Please understand, that the brain tumor data set used in our publication cannot be made publicly available.
 
 
-III. Data preprocessing [Gregor, Jens]
+## III. Data preprocessing [Gregor, Jens]
 
 Data pre-processing is not required, as long as the data does not contain artifacts/NaN entries etc. but it will most likely improve the results. The provided code automatically standardizes the data (zero mean, unit variance per volume), thus only nonlinear data pre-processing operations have any effect.
 
 If you use data from different scanners that produce data with varying orientation it might be necessary to transform all your data to a common orientation. For instance, this might be achieved using fslreorient2std [http://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FSL]. 
 
-IV. Examples
+## IV. Examples
 
 § Brain mask prediction using a pre-trained CNN
 
@@ -171,9 +171,16 @@ e.g. volume1_data.nii.gz -> volume1_label.nii.gz
 
 python deep3Dtrain.py --data data/ --labels labels/
 
-VI. FAQ
+
+## VI. FAQ
 
 * How is it possible that the results reported in your paper differ from the results I obtain?
 
 This can be due to several reasons. The presented method is not deterministic, i.e. there are a lot of random steps like initialization of the weights and order of the data cubes presented during training. Therefor, every trained CNN is somewhat unique. Further, the hardware and software libraries used also have an impact on speed and performance. With this software code we also included a pre-trained net (OASIS_ISBR_LPBA40__trained_CNN.save) that exhibits very good results on these three data sets.
 The speed of training and prediction depends on several factors: the computer hardware (and GPU model), the used convolution backend (e.g. cuDNN and the specific version of it vs. the slower Theano convolution) and the "gridsize"  parameter (higher values are more efficient for prediction but require more GPU memory, the default value of 16 is a conservative choice)
+
+
+* I have a problem running the code / found a bug, who should I contanct?
+
+send an email to: gur9000@outlook.com
+

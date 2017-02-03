@@ -218,7 +218,7 @@ class ConvPoolLayer3D(object):
                 )
 
         if np.any(poolsize>1):
-            print "   use_fragment_pooling =",use_fragment_pooling
+            #print "   use_fragment_pooling =",use_fragment_pooling
 
             if use_fragment_pooling:
                 assert np.all(poolsize==2), "Fragment Pooling (currently) allows only a Poolingfactor of 2! GIVEN: "+str(poolsize)

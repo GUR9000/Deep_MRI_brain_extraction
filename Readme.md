@@ -104,7 +104,7 @@ If you use this data please cite the corresponding publications and comply with 
 Please understand, that the brain tumor data set used in our publication cannot be made publicly available.
 
 
-## III. Data preprocessing [Gregor, Jens]
+## III. Data preprocessing
 
 Data pre-processing is not required, as long as the data does not contain artifacts/NaN entries etc. but it will most likely improve the results. The provided code automatically standardizes the data (zero mean, unit variance per volume), thus only nonlinear data pre-processing operations have any effect.
 

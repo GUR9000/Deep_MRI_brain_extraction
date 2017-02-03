@@ -182,6 +182,6 @@ This can be due to several reasons. The presented method is not deterministic, i
 The speed of training and prediction depends on several factors: the computer hardware (and GPU model), the used convolution backend (e.g. cuDNN and the specific version of it vs. the slower Theano convolution) and the "gridsize"  parameter (higher values are more efficient for prediction but require more GPU memory, the default value of 16 is a conservative choice)
 
 
-* I have a problem running the code / found a bug, who should I contanct?
+* I have a problem running the code / found a bug, who should I contact?
 
 send an email to: gur9000@outlook.com

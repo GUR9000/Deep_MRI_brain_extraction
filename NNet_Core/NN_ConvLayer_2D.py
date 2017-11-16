@@ -35,7 +35,7 @@ import numpy
 import theano
 import theano.tensor as T
 from theano.tensor.nnet import conv #('batch', 'channel', x, y)
-from theano.sandbox.cuda.basic_ops import gpu_contiguous
+#from theano.sandbox.cuda.basic_ops import gpu_contiguous
 
 import time
 

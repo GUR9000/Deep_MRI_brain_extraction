@@ -119,6 +119,19 @@ def greyvalue_data_padding(DATA, offset_l, offset_r):
 
 
 
+def pad_data(x, n_padding, mode):
+    ''' padding will be added to the last axis on both front and end (i.e. size increases by 2 * n_padding
+    
+    mode:
+        
+        constant or mean'''
+    pad = [(0, 0) for i in range(x.ndim-1)]+[(n_padding, n_padding)]
+    return np.pad(x, pad, mode=mode)
+    
+    
+    
+
+
 class PatchCreator():
     """
     <INPUT_img_size> must be the output of PredictMaximumInputSize() !
@@ -132,10 +145,17 @@ class PatchCreator():
                  n_labels_per_batch=10, 
                  override_data_set_filenames=None, 
                  data_init_preserve_channel_scaling=0, 
+                 data_clip_range = None,
                  use_max_fragment_pooling = False,
-                 auto_threshold_labels = False):
+                 auto_threshold_labels = False,
+                 pad_last_dimension = False,
+                 padding_margin = 10):
         """ filter_size and pooling_factor are lists (if multilayer)
-            image_depth: if you have 3D data, returns a 2D slice of thickness <image_depth> (so in fact it is a 3D slice)
+            
+            
+            pad_last_dimension:
+                
+                True/False; necessary when training data's last channel is smaller than the CNN input window. Will add <padding_margin> more pixels in total than the required minimum.
         """
 
 
@@ -162,129 +182,9 @@ class PatchCreator():
 
 
         assert not (type(override_data_set_filenames)!=type([]) and type(override_data_set_filenames)!=type({1:0}))
-            
-        
-
-        if type(override_data_set_filenames) is dict:
-            if "data" in override_data_set_filenames.keys():
-                nfiles = zip(override_data_set_filenames["data"],override_data_set_filenames["labels"])
-                assert len(override_data_set_filenames["data"]) == len(override_data_set_filenames["labels"]),"seems broken! Fix the dict contents."
-                if b_shuffle_data:
-                    random.seed(46473)#fixed seed: otherwise saves are INVALID/FRAUD (->const test set)
-                    random.shuffle(nfiles)
-                    random.seed()
-            else:
-                assert len(override_data_set_filenames["train_data"]) == len(override_data_set_filenames["train_labels"]),"seems broken! Fix the dict contents."
-                nfiles =  zip(override_data_set_filenames["train_data"],override_data_set_filenames["train_labels"])
-                self.training_set_size = len(nfiles)
-                tmp = override_data_set_filenames["test_data"]
-                nfiles += zip(tmp,[None]*len(tmp))
-                
-        
-
-        self.data   = []
-        self.labels = []
-        self.mask   = []
-        if type(nfiles[0])==type(""):
-            self.file_names = nfiles
-        else:
-            self.file_names = [x[0] for x in nfiles]
-        print "loading..."
-        n = len(nfiles)
-
-        self.num_channels = None
-        self.num_classes  = 6 #[0,1,2,3,4,5]
-        
-
-
-        for i,f in zip(range(len(nfiles)),nfiles):
-            
-#            print i,f
-            
-            if type(f) is str:
-
-                d = file_reading.load_file(f)
-                d = d[0,...]
-                l = None 
-
-                
-            else:
-                assert type(f[0]) is str
-                d = file_reading.load_file(f[0])
-                d = np.squeeze(d)
-                
-                if d.ndim==3:
-                    d=d.reshape(d.shape+(1,))# add single channel dimension
-                if data_init_preserve_channel_scaling:
-                    d = (d-0.5)/3.5 
-                else:
-
-                    d2 = np.transpose(d,axes=[3,0,1,2])
-                    d2 = np.reshape(d2,(d2.shape[0],-1))
-                    std_ = np.std(d2,axis=1)
-                    mean_ = np.mean(d2,axis=1)
-                    d = (d-mean_)/(4.*std_)
-                    
-                if f[1] is not None:
-                    l = file_reading.load_file(f[1])
-                    l=np.squeeze(l)
-                    uniq = np.unique(l)
-                else:
-                    l = np.zeros((1,1,1),"uint16")
-                    uniq = [0,1] #small hack...
-            
-            if len(uniq)==2 and uniq[1]!=1:
-                l[l==uniq[1]]=1
-                l[l==uniq[0]]=0
-                uniq=[0,1]
-            if len(uniq) !=2:
-                if auto_threshold_labels:
-                    assert uniq[0]==0
-                    l = (l>0).astype('int16')
-                else:
-                    assert len(uniq)==2, 'Labels must be binary, but found '+str(len(uniq))+' unique values in the labels!'
-            
-            
-            if d.shape[:3]!=l.shape[:3] and l.shape[:3]!=(1,1,1):
-                print "DATA SHAPE MISMATCH! transposing labels..."
-                l=np.transpose(l,axes=[0,2,1])
-            assert d.shape[:3]==l.shape[:3] or l.shape[:3]==(1,1,1)
-            
-            if self.num_channels is None:
-                self.num_channels = d.shape[3]
-            assert d.shape[3]==self.num_channels
-            if self.num_channels==5:
-                print "warning: removing channel 2 (starting at 0)"
-                d = np.concatenate( (d[...,:2],d[...,3:]),axis=3) #x,y,z,channels
-                
-            self.data.append(((np.transpose(d,(0,3,1,2)))))# format: (x,channels,y,z)
-
-            if l is not None:
-                if l.dtype in [np.dtype('int'),np.dtype('int32'),np.dtype('int16'),np.dtype('uint32'),np.dtype('uint16')]:
-                    l[l==5]=0
-#                    print "WARNING: merging class 0 and 5!"
-                    self.labels.append(l.astype("int16"))
-                else:
-                    self.labels.append(l)
-            print 'Loaded...',100.*(i+1)/n,"%",self.data[-1].shape, f  #, self.labels[-1].shape  #,np.unique(self.labels[-1]) #(143, 4, 175, 127) (143, 175, 127) LG0004_inclLabels.cp
-
-        
         
         
         self.CNET_real_imagesize = 256 # only valid for this set  np.shape(self.data)[1]
-
-        self.CNET_data_NumImagesInData = len(self.data)#number of different images
-        
-
-
-        self.number_of_images_test_set              = int(self.CNET_data_NumImagesInData - self.training_set_size)
-
-        print "Total n. of examples:",self.CNET_data_NumImagesInData,"images/volumes"
-        print 'Training on',self.training_set_size,'images/volumes'
-        print 'Testing on ',self.number_of_images_test_set,'images/volumes'
-
-        self._getTestImage_current_file=self.training_set_size # <self.training_set_size> is the first non-training file
-
 
         best = 1
         #find best matching input size (such that n_labels_per_batch is reached)
@@ -317,6 +217,161 @@ class PatchCreator():
         self.padded_once=False
         self.use_max_fragment_pooling = use_max_fragment_pooling
 
+        if type(override_data_set_filenames) is dict:
+            if "data" in override_data_set_filenames.keys():
+                nfiles = zip(override_data_set_filenames["data"],override_data_set_filenames["labels"])
+                assert len(override_data_set_filenames["data"]) == len(override_data_set_filenames["labels"]),"seems broken! Fix the dict contents."
+                if b_shuffle_data:
+                    random.seed(46473)#fixed seed: otherwise saves are INVALID/FRAUD (->const test set)
+                    random.shuffle(nfiles)
+                    random.seed()
+            else:
+                assert len(override_data_set_filenames["train_data"]) == len(override_data_set_filenames["train_labels"]),"seems broken! Fix the dict contents."
+                nfiles =  zip(override_data_set_filenames["train_data"],override_data_set_filenames["train_labels"])
+                self.training_set_size = len(nfiles)
+                tmp = override_data_set_filenames["test_data"]
+                nfiles += zip(tmp,[None]*len(tmp))
+                
+        
+
+        self.data   = []
+        self.labels = []
+        self.mask   = []
+        if type(nfiles[0])==type(""):
+            self.file_names = nfiles
+        else:
+            self.file_names = [x[0] for x in nfiles]
+        print "loading..."
+        n = len(nfiles)
+
+        self.num_channels = None
+        self.num_classes  = 6 #[0,1,2,3,4,5]
+        
+        
+
+        for i,f in zip(range(len(nfiles)),nfiles):
+            
+#            print i,f
+            addtnl_info_str=''
+            
+            if type(f) is str:
+
+                d = file_reading.load_file(f)
+                d = d[0,...]
+                l = None 
+
+                
+            else:
+                assert type(f[0]) is str
+                d = file_reading.load_file(f[0])
+                d = np.squeeze(d)
+                
+                if d.ndim==3:
+                    d=d.reshape(d.shape+(1,))# add single channel dimension
+                
+                if data_clip_range is None:
+                    if data_init_preserve_channel_scaling:
+                        d = (d-0.5)/3.5 
+                    else:
+    
+                        d2 = np.transpose(d,axes=[3,0,1,2])
+                        d2 = np.reshape(d2,(d2.shape[0],-1))
+                        std_ = np.std(d2,axis=1)
+                        mean_ = np.mean(d2,axis=1)
+                        d = (d-mean_)/(4.*std_)
+                else:
+                    assert len(data_clip_range)==2
+                    #warp large values to min
+                    d = np.where(d > data_clip_range[1] + abs(data_clip_range[1]-data_clip_range[0])*0.1, data_clip_range[0], d)
+                    #clip to range
+                    d = np.clip(d, data_clip_range[0], data_clip_range[1])
+                    
+                    addtnl_info_str+='clip({},{})'.format(data_clip_range[0], data_clip_range[1])
+                    if 0:
+                        overflow = np.where(d==data_clip_range[1], 1, 0)
+                        d = np.where(d==data_clip_range[1], data_clip_range[0], d)
+                        d -= d.min()
+                        d /= d.max()
+                        d = np.concatenate([d, overflow], axis=-1)
+                    else:
+                        d -= d.min()
+                        d /= d.max()
+                    d *= 0.1
+                
+                if f[1] is not None:
+                    l = file_reading.load_file(f[1])
+                    l=np.squeeze(l)
+                    uniq = np.unique(l)
+                else:
+                    l = np.zeros((1,1,1),"uint16")
+                    uniq = [0,1] #small hack...
+            
+            if len(uniq)==2 and uniq[1]!=1:
+                l[l==uniq[1]]=1
+                l[l==uniq[0]]=0
+                uniq=[0,1]
+            if len(uniq) !=2:
+                if auto_threshold_labels:
+                    assert uniq[0]==0
+                    l = (l>0).astype('int16')
+                else:
+                    assert len(uniq)==2, 'Labels must be binary, but found '+str(len(uniq))+' unique values in the labels!'
+            
+            
+            if d.shape[:3]!=l.shape[:3] and l.shape[:3]!=(1,1,1):
+                print "DATA SHAPE MISMATCH! transposing labels..."
+                l=np.transpose(l,axes=[0,2,1])
+            assert d.shape[:3]==l.shape[:3] or l.shape[:3]==(1,1,1)
+            
+            if self.num_channels is None:
+                self.num_channels = d.shape[3]
+            assert d.shape[3]==self.num_channels
+            if self.num_channels==5:
+                print "warning: removing channel 2 (starting at 0)"
+                d = np.concatenate( (d[...,:2],d[...,3:]),axis=3) #x,y,z,channels
+            
+            
+            d = np.transpose(d,(0,3,1,2))
+            
+            
+
+            if l is not None:
+                if l.dtype in [np.dtype('int'),np.dtype('int32'),np.dtype('int16'),np.dtype('uint32'),np.dtype('uint16')]:
+                    l[l==5]=0
+#                    print "WARNING: merging class 0 and 5!"
+                    l = l.astype("int16")
+#                else:
+                
+                
+                
+            print 'Loaded...',100.*(i+1)/n,"%",d.shape,addtnl_info_str, f  #, self.labels[-1].shape  #,np.unique(self.labels[-1]) #(143, 4, 175, 127) (143, 175, 127) LG0004_inclLabels.cp
+            
+            if pad_last_dimension and (d.shape[-1] < self.CNET_Input_Size + padding_margin):
+                add_this = int((padding_margin + self.CNET_Input_Size - d.shape[-1])/2.)
+                d = pad_data(d, add_this, mode='constant')
+                #            if l.shape[-1] < self.CNET_Input_Size:
+                l = pad_data(l, add_this, mode='constant')
+                print '>> padded to:', d.shape
+            self.data.append(d)# format: (x,channels,y,z)
+            self.labels.append(l)
+        
+        
+
+        self.CNET_data_NumImagesInData = len(self.data)#number of different images
+        
+
+
+        self.number_of_images_test_set = int(self.CNET_data_NumImagesInData - self.training_set_size)
+
+        print "Total n. of examples:",self.CNET_data_NumImagesInData,"images/volumes"
+        print 'Training on',self.training_set_size,'images/volumes'
+        print 'Testing on ',self.number_of_images_test_set,'images/volumes'
+
+        self._getTestImage_current_file=self.training_set_size # <self.training_set_size> is the first non-training file
+
+
+
+
 
 
 
@@ -347,6 +402,7 @@ class PatchCreator():
 
     def __get_cubes(self, i_min, i_max, num):
         """ picks <num> many cubes from [i_min,i_max)  (max is excluded) <num> many pictures."""
+                
         i_ = np.random.randint(i_min, i_max, size=num)# 0, self.training_set_size,size=num)
 
         dat = np.zeros( (num, self.CNET_Input_Size, self.num_channels, self.CNET_Input_Size, self.CNET_Input_Size), dtype="float32")
@@ -356,10 +412,14 @@ class PatchCreator():
         if self.labels[0].ndim==4:
             labshape += (self.labels[0].shape[3],)
         lab = np.zeros( labshape, dtype="int16")
-
+        
+        
+        
         for n,i in zip(range(num),i_):
             sp = self.data[i].shape
-            off = [np.random.randint(0,sp[x + (1 if x>0 else 0)]-self.CNET_Input_Size) for x in range(3)]
+            sp = [ sp[x + (1 if x>0 else 0)] for x in range(3)] #ignore channel axis
+            
+            off = [np.random.randint(0,sp[x]-self.CNET_Input_Size) for x in range(3)]
             dat[n,...] = self.data[i][off[0]:off[0]+self.CNET_Input_Size, :, off[1]:off[1]+self.CNET_Input_Size, off[2]:off[2]+self.CNET_Input_Size]
             loff = tuple(off) + self.CNET_labels_offset
             lab[n,...] = self.labels[i][loff[0]:loff[0]+self.number_of_labeled_points_per_dim*self.CNET_stride:self.CNET_stride, loff[1]:loff[1]+self.number_of_labeled_points_per_dim*self.CNET_stride:self.CNET_stride, loff[2]:loff[2]+self.number_of_labeled_points_per_dim*self.CNET_stride:self.CNET_stride]

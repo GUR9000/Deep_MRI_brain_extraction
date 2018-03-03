@@ -30,10 +30,12 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR TH
 
 import argparse
 import utils.data_and_CV_handler as data_and_CV_handler
+import numpy as np
 
 
 def train(list_training_data, list_training_labels, list_test_data, 
-         save_name, learning_rate, load_previous_save=False, auto_threshold_labels=False):
+         save_name, learning_rate, load_previous_save=False, auto_threshold_labels=False,
+         data_clip_range = None, network_size_factor = 1):
     """This is the runner for the brain mask prediction project.
         It will either train the CNN or load the trained network and predict the test set.
 
@@ -65,7 +67,7 @@ def train(list_training_data, list_training_labels, list_test_data,
     
     assert len(list_training_data) == len(list_training_labels), "The total number of data files and label files differs: "+str(len(list_training_data))+' vs '+str(len(list_training_labels))
     autosave_frequency_minutes=60 # saves a copy of the CNN's parameters on the disk every X minutes
-    autosave_n_files=100
+    autosave_n_files=3
 
 
     # if anything weird happens during training (e.g. loss increases by more than a factor of two), try a lower value
@@ -75,12 +77,16 @@ def train(list_training_data, list_training_labels, list_test_data,
     momentum = 0.9
     patch_depth = 1
     use_fragment_pooling = 0
-    b_use_data_augmentation = 1
     init_scale_factor = 3.
 
+    #  ~~~~~  REGULARIZATION  ~~~~~
+    b_use_data_augmentation = 0
+    gradient_clipping       = 0
+    bWeightDecay            = 0
+    bDropoutEnabled         = 0
     
-    n_labels_pred_per_dim = 4
-
+    
+    n_labels_pred_per_dim = 5 # was 4
 
     # number of classes in the data set - e.g. 2 means binary classification.
     n_classes=2
@@ -97,12 +103,9 @@ def train(list_training_data, list_training_labels, list_test_data,
     # this specifies the number of different filters in each layer:
     nnet_args["nof_filters"]     = [16, 24, 28, 34, 42, 50, 50,   n_classes]
     
-    gradient_clipping  = True
-    bWeightDecay       = True
-    bDropoutEnabled    = 0
-    num_patches_per_batch = 3  # a better setting is e.g. 4 if you have enough GPU memory or use the CPU
-    
-    bDropoutEnabled = 0
+    nnet_args["nof_filters"] = [int(np.ceil(network_size_factor * x)) for x in nnet_args["nof_filters"][:-1]] + [nnet_args["nof_filters"][-1]]
+        
+
     num_patches_per_batch = 4  # a better setting is e.g. 4 if you have enough GPU memory or use the CPU, otherwise try 2
     
     input_to_cnn_depth = patch_depth #use 2 if you enable the pseudo-recursion
@@ -125,6 +128,7 @@ def train(list_training_data, list_training_labels, list_test_data,
                                      num_patches_per_batch=num_patches_per_batch,
                                      actfunc = "relu",
                                      data_init_preserve_channel_scaling=0, 
+                                     data_clip_range = data_clip_range,
                                      use_fragment_pooling = use_fragment_pooling,
                                      auto_threshold_labels = auto_threshold_labels,
                                      gradient_clipping = gradient_clipping,
@@ -164,12 +168,18 @@ def tolist(x):
 def main():
     parser = argparse.ArgumentParser(description='Main module to train a 3D-CNN for segmentation')
     
-    parser.add_argument('--data', required=True, type=str, nargs='+', help='Any number and combination of paths to files or folders that will be used as input-data for training the CNN')
-    parser.add_argument('--labels', required=True, type=str, nargs='+', help='Any number and combination of paths to files or folders that will be used as target for training the CNN (values must be 0/1)')
+    parser.add_argument('-data', required=True, type=str, nargs='+', help='Any number and combination of paths to files or folders that will be used as input-data for training the CNN')
+    parser.add_argument('-labels', required=True, type=str, nargs='+', help='Any number and combination of paths to files or folders that will be used as target for training the CNN (values must be 0/1)')
     
-    parser.add_argument('--lr', type=float, default=1e-5,  help='initial learning rate (step size) for training the CNN')
-    parser.add_argument('--name', default='deep3Dtrain_model_1', type=str,  help='name of the model (affects filenames) -- specify the same name when using deep3Dtest.py')
-    parser.add_argument('--convertlabels', default=1, type=int, nargs=1, help='if labels are not binary: this will convert values >1 to 1')
+    parser.add_argument('-lr', type=float, default=1e-5,  help='initial learning rate (step size) for training the CNN')
+    parser.add_argument('-name', default='deep3Dtrain_model_1', type=str,  help='name of the model (affects filenames) -- specify the same name when using deep3Dtest.py')
+    parser.add_argument('-convert_labels', default=1, type=int, nargs=1, help='if labels are not binary: this will convert values >1 to 1')
+    
+    parser.add_argument('-data_clip_range', default=None, type=float, nargs=2, help='[Mostly for single-channel data] Clip all pixel-values outside of the given range (important if values of volumes have very different ranges!)')
+    
+    parser.add_argument('-CNN_width_scale', default=1., type=float, help='Scale factor for the layer widths of the CNN; values larger than 1 will increase the total network size beyond the default size, but be careful to not exceed your GPU memory.')
+    
+    
     args = parser.parse_args()
     
     #print args
@@ -184,7 +194,9 @@ def main():
          save_name=tolist(args.name)[0],
          learning_rate=args.lr,
          load_previous_save = load_previous_save,
-         auto_threshold_labels=tolist(args.convertlabels)[0])
+         auto_threshold_labels=tolist(args.convert_labels)[0],
+         data_clip_range = args.data_clip_range,
+         network_size_factor = float(args.CNN_width_scale))
 
 
 

@@ -30,12 +30,14 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR TH
 
 import argparse
 import time
+import numpy as np
 import utils.data_and_CV_handler as data_and_CV_handler
 
 
 def predict(list_training_data, list_training_labels, list_test_data, 
          save_name, apply_cc_filtering, output_path, load_previous_save=False, 
-         auto_threshold_labels=False, output_filetype = 'h5', save_prob_map = False, n_labels_pred_per_dim = 16):
+         auto_threshold_labels=False, output_filetype = 'h5', save_prob_map = False, 
+         n_labels_pred_per_dim = 16, data_clip_range = None, network_size_factor = 1):
     """This is the runner for the brain mask prediction project.
         It will either train the CNN or load the trained network and predict the test set.
 
@@ -85,7 +87,8 @@ def predict(list_training_data, list_training_labels, list_test_data,
     nnet_args["pooling_factors"] = [2, 1, 1,  1, 1, 1, 1, 1] # this indicates where max-pooling is used ( a value of 1 means no pooling)
 #    nnet_args["nof_filters"]     = [1, 1, 1, 1, 1, 1, 1,   n_classes] # number of different filters in each layer:
     nnet_args["nof_filters"]     = [16, 24, 28, 34, 42, 50, 50,   n_classes] # number of different filters in each layer:
-
+    
+    nnet_args["nof_filters"] = [int(np.ceil(network_size_factor * x)) for x in nnet_args["nof_filters"][:-1]] + [nnet_args["nof_filters"][-1]]
 
     bDropoutEnabled = 0
     num_patches_per_batch =  1 
@@ -108,6 +111,7 @@ def predict(list_training_data, list_training_labels, list_test_data,
                                      num_patches_per_batch=num_patches_per_batch,
                                      actfunc = "relu",
                                      data_init_preserve_channel_scaling=0, 
+                                     data_clip_range = data_clip_range,
                                      use_fragment_pooling = use_fragment_pooling,
                                      auto_threshold_labels = auto_threshold_labels)
 
@@ -157,33 +161,37 @@ def main():
     
     parser = argparse.ArgumentParser(description='Main module to apply an already trained 3D-CNN to segment data')
     
-    parser.add_argument('-i', type=str, nargs='+', required=True, help='Any number and combination of paths to files or folders that will be used as input-data for training the CNN')
-    parser.add_argument('-n', default='OASIS_ISBR_LPBA40__trained_CNN.save', type=str,  help='name of the trained/saved CNN model (can be either a folder or .save file)')
-    parser.add_argument('-o', default='predictions/', type=str, help='output path for the predicted brain masks')
+    parser.add_argument('-data', type=str, nargs='+', required=True, help='Any number and combination of paths to files or folders that will be used as input-data for training the CNN')
+    parser.add_argument('-name', default='OASIS_ISBR_LPBA40__trained_CNN.save', type=str,  help='name of the trained/saved CNN model (can be either a folder or .save file)')
+    parser.add_argument('-output', default='predictions/', type=str, help='output path for the predicted brain masks')
     
-    parser.add_argument('-c', default=True, type=bool,  help='Filter connected components: removes all connected components but the largest two (i.e. background and brain) [default=True]')
-    parser.add_argument('-f', default='nifti', type=str,  help='File saving format for predictions. Options are "h5", "nifti", "numpy" [default=nifti]')
+    parser.add_argument('-cc', default=True, type=bool,  help='Filter connected components: removes all connected components but the largest two (i.e. background and brain) [default=True]')
+    parser.add_argument('-format', default='nifti', type=str,  help='File saving format for predictions. Options are "h5", "nifti", "numpy" [default=nifti]')
     parser.add_argument('-prob', default=1, type=bool,  help='save probability map as well')
     parser.add_argument('-gridsize', default=32, type=int,  help='size of CNN output grid (optimal: largest possible divisor of the data-volume axes that still fits into GPU memory). This setting heavily affects prediction times: larger values are better. Values that are too large will cause a failure due to too little GPU-memory.')
     
+    parser.add_argument('-data_clip_range', default=None, type=float, nargs=2, help='[Mostly for single-channel data] Clip all pixel-values outside of the given range (important if values of volumes have very different ranges!) -- Must be identical to the setting used during training!')
+    parser.add_argument('-CNN_width_scale', default=1, type=float, help='Scale factor for the layer widths of the CNN; values larger than 1 will increase the total network size beyond the default size, but be careful to not exceed your GPU memory. -- Must be identical to the setting used during training!')
     
     args = parser.parse_args()
     
-    data = findall(tolist(args.i))
+    data = findall(tolist(args.data))
     
     assert len(data)>0, 'Could not find the data. Please either pass all paths to the individual files or place them in a single folder and pass the path to this folder as "-i" argument'
-    assert args.f in ['nifti', 'h5', 'numpy']
+    assert args.format in ['nifti', 'h5', 'numpy'], 'Argument "format" must be nifti, h5, or numpy'
     
     
     predict(list_training_data=[],    
          list_training_labels=[],    
          list_test_data=data,            
-         save_name=tolist(args.n),
-         apply_cc_filtering = bool(args.c),
-         output_path = str(args.o),
-         output_filetype = args.f,
+         save_name=tolist(args.name),
+         apply_cc_filtering = bool(args.cc),
+         output_path = str(args.output),
+         output_filetype = args.format,
          save_prob_map = args.prob,
-         n_labels_pred_per_dim = args.gridsize)
+         n_labels_pred_per_dim = args.gridsize,
+         data_clip_range = args.data_clip_range,
+         network_size_factor = float(args.CNN_width_scale))
 
 
 

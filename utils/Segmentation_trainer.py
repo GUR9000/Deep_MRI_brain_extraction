@@ -82,7 +82,8 @@ def train_net(cnn, patchCreator, LR_start , num_patches_per_batch = 1,
 
     batchsize=1
 
-    trailing_mean_NLL=0
+    NLL_history = []
+    NLL_history_size = 500 #only the most recent 500 values are kept
 
 
     if num_patches_per_batch!=1:
@@ -100,7 +101,7 @@ def train_net(cnn, patchCreator, LR_start , num_patches_per_batch = 1,
 
 
     nit=0# iteration number
-    trailing_mean_NLL=0.7
+#    trailing_mean_NLL=0.7
 
 
     training_mode = 1
@@ -144,7 +145,7 @@ def train_net(cnn, patchCreator, LR_start , num_patches_per_batch = 1,
 
 
 
-                xnll = cnn.training_step(data, labels, mode=training_mode)
+                nll = cnn.training_step(data, labels, mode=training_mode)
                 
 #                ret = cnn.debug_gradients_function(data,labels)
 #                print 'len(ret)',len(ret)
@@ -152,20 +153,21 @@ def train_net(cnn, patchCreator, LR_start , num_patches_per_batch = 1,
 #                    print np.min(gr), np.mean(np.abs(gr)), np.median(np.abs(gr)), np.max(gr)
 #                print
                 
-
-                trailing_mean_NLL = 0.995* trailing_mean_NLL + 0.005* xnll
+                NLL_history.append(nll)
+#                trailing_mean_NLL = 0.995* trailing_mean_NLL + 0.005* xnll
 
                 nit+=1;
 
                 if nit%10 == 0:
-
+                    NLL_history = NLL_history[-NLL_history_size:]
+                    xnll = np.mean(NLL_history)
                     TimeControl.tick(nit,
-                                    additional_save_string = "" if autosave_frequency_minutes>1 else trailing_mean_NLL,
+                                    additional_save_string = "" if autosave_frequency_minutes>1 else xnll,
                                     update_LR = False) #creates auto-saves too...
+                   
+                    done_looping = LR_sched.tick(nit, current_score = -xnll)
 
-                    done_looping = LR_sched.tick(nit, current_score = -trailing_mean_NLL)
-
-                    GLogger.log_and_print(["Iteration =",nit,"avg. NLL =",trailing_mean_NLL])
+                    GLogger.log_and_print(["Iteration =",nit,"avg. NLL =", xnll])
 
 
 
@@ -185,6 +187,7 @@ def Build3D(nnet_args, n_labels_per_batch = 300,  patch_depth = 1, actfunc='relu
             bDropoutEnabled = False, notrain=0, input_to_cnn_depth = 1,
             override_data_set_filenames=None, num_patches_per_batch = 1,
             data_init_preserve_channel_scaling = 1, 
+            data_clip_range = None,
             use_fragment_pooling = 0, auto_threshold_labels=False,
             gradient_clipping = True, bWeightDecay = True):
     """build net, load samples (patchCreator)"""
@@ -209,8 +212,10 @@ def Build3D(nnet_args, n_labels_per_batch = 300,  patch_depth = 1, actfunc='relu
     patchCreator = helper.PatchCreator(filter_sizes, pooling_factors, n_labels_per_batch=n_labels_per_batch,
                                        override_data_set_filenames=override_data_set_filenames,
                                        data_init_preserve_channel_scaling=data_init_preserve_channel_scaling,
+                                       data_clip_range = data_clip_range,
                                        use_max_fragment_pooling = use_fragment_pooling, 
-                                       auto_threshold_labels=auto_threshold_labels)
+                                       auto_threshold_labels=auto_threshold_labels,
+                                       pad_last_dimension = not notrain)
 
     print 'Building CNN...'
     cnn = MixedConvNN( patchCreator.CNET_Input_Size, ImageDepth = input_to_cnn_depth, InputImageDimensions = 3,

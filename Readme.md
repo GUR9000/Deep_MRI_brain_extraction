@@ -111,8 +111,11 @@ Data pre-processing is not required, as long as the data does not contain artifa
 If you use data from different scanners that produce data with varying orientation it might be necessary to transform all your data to a common orientation. For instance, this might be achieved using fslreorient2std [http://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FSL]. 
 
 
+<<<<<<< HEAD
 ## IV. Examples
 
+=======
+>>>>>>> origin/master
 #### Brain mask prediction using an already trained CNN
 ```
 python deep3Dpredict.py --help

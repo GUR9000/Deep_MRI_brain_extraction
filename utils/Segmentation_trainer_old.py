@@ -82,8 +82,7 @@ def train_net(cnn, patchCreator, LR_start , num_patches_per_batch = 1,
 
     batchsize=1
 
-    NLL_history = []
-    NLL_history_size = 500 #only the most recent 500 values are kept
+    trailing_mean_NLL=0
 
 
     if num_patches_per_batch!=1:
@@ -101,7 +100,7 @@ def train_net(cnn, patchCreator, LR_start , num_patches_per_batch = 1,
 
 
     nit=0# iteration number
-#    trailing_mean_NLL=0.7
+    trailing_mean_NLL=0.7
 
 
     training_mode = 1
@@ -145,7 +144,7 @@ def train_net(cnn, patchCreator, LR_start , num_patches_per_batch = 1,
 
 
 
-                nll = cnn.training_step(data, labels, mode=training_mode)
+                xnll = cnn.training_step(data, labels, mode=training_mode)
                 
 #                ret = cnn.debug_gradients_function(data,labels)
 #                print 'len(ret)',len(ret)
@@ -153,21 +152,20 @@ def train_net(cnn, patchCreator, LR_start , num_patches_per_batch = 1,
 #                    print np.min(gr), np.mean(np.abs(gr)), np.median(np.abs(gr)), np.max(gr)
 #                print
                 
-                NLL_history.append(nll)
-#                trailing_mean_NLL = 0.995* trailing_mean_NLL + 0.005* xnll
+
+                trailing_mean_NLL = 0.995* trailing_mean_NLL + 0.005* xnll
 
                 nit+=1;
 
                 if nit%10 == 0:
-                    NLL_history = NLL_history[-NLL_history_size:]
-                    xnll = np.mean(NLL_history)
-                    TimeControl.tick(nit,
-                                    additional_save_string = "" if autosave_frequency_minutes>1 else xnll,
-                                    update_LR = False) #creates auto-saves too...
-                   
-                    done_looping = LR_sched.tick(nit, current_score = -xnll)
 
-                    GLogger.log_and_print(["Iteration =",nit,"avg. NLL =", xnll])
+                    TimeControl.tick(nit,
+                                    additional_save_string = "" if autosave_frequency_minutes>1 else trailing_mean_NLL,
+                                    update_LR = False) #creates auto-saves too...
+
+                    done_looping = LR_sched.tick(nit, current_score = -trailing_mean_NLL)
+
+                    GLogger.log_and_print(["Iteration =",nit,"avg. NLL =",trailing_mean_NLL])
 
 
 

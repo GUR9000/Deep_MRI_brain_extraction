@@ -1,9 +1,9 @@
 ---
 
     """
-    This software is an implementation of
+    This software is an implementation of the paper
 
-    Deep MRI brain extraction: A 3D convolutional neural network for skull stripping
+    "Deep MRI brain extraction: A 3D convolutional neural network for skull stripping"
 
     You can download the paper at http://dx.doi.org/10.1016/j.neuroimage.2016.01.024
 
@@ -112,8 +112,8 @@ If you use data from different scanners that produce data with varying orientati
 
 ## IV. Examples
 
-#### Brain mask prediction using a pre-trained CNN
-
+#### Brain mask prediction using an already trained CNN
+```
 python deep3Dpredict.py --help
 usage: deep3Dpredict.py [-h] -i I [I ...] [-o O] [-n N] [-c C] [-f F]
                         [-prob PROB] [-gridsize GRIDSIZE]
@@ -142,37 +142,41 @@ optional arguments:
 
 python deep3Dpredict.py -n OASIS_ISBR_LPBA40__trained_CNN.save -i /home/share/brain_mask/__NEW__/ibsr_data/02/IBSR_02_ana.nii.gz -gridsize 16
  
-
+```
 #### Train a new CNN (with your data)
-
+```
 python deep3Dtrain.py --help
-usage: deep3Dtrain.py [-h] --data DATA [DATA ...] --labels LABELS [LABELS ...]
-                      [--lr LR] [--name NAME] [--convertlabels CONVERTLABELS]
+usage: deep3Dtrain.py [-h] -data DATA [DATA ...] -labels LABELS [LABELS ...]
+                      [-lr LR] [-name NAME] [-convert_labels CONVERTLABELS]
 
 Main module to train a 3D-CNN for segmentation
 
 optional arguments:
   -h, --help            show this help message and exit
-  --data DATA [DATA ...]
+  -data DATA [DATA ...]
                         Any number and combination of paths to files or
                         folders that will be used as input-data for training
                         the CNN
-  --labels LABELS [LABELS ...]
+  -labels LABELS [LABELS ...]
                         Any number and combination of paths to files or
                         folders that will be used as target for training the
                         CNN (values must be 0/1)
-  --lr LR               initial learning rate (step size) for training the CNN
-  --name NAME           name of the model (affects filenames) -- specify the
+  -lr LR               initial learning rate (step size) for training the CNN (default: 10^(-5))
+  -name NAME           name of the model (affects filenames) -- specify the
                         same name when using deep3Dtest.py
-  --convertlabels CONVERTLABELS
+  -convert_labels CONVERTLABELS
                         if labels are not binary: this will convert values >1
                         to 1
+  -data_clip_range [LOWER UPPER]
+                        [optional] specify two values
 
-For each data file you have to supply an associated label file. The names should indicate their relationship,
-e.g. volume1_data.nii.gz -> volume1_label.nii.gz
 
-python deep3Dtrain.py --data data/ --labels labels/
 
+For each data file you have to supply an associated label file. The file names should indicate their relationship such that alphabetical ordering results in a correct matching of the corresponding data and label files,
+e.g. [vol1_data.nii.gz, vol2_data.nii.gz, ...] <-> [vol1_label.nii.gz, vol2_label.nii.gz, ...]
+
+python deep3Dtrain.py -data data/ -labels labels/
+```
 
 ## VI. FAQ
 

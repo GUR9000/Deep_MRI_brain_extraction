@@ -35,7 +35,7 @@ import numpy as np
 
 
 def Gregs_Regularizer(cnn, num_classes):
-    print "Experimental Gregs_Regularizer:: enabled"
+    print("Experimental Gregs_Regularizer:: enabled")
 #    assert bExperimental_Semanic_Hashing_enforcer==0, "dont use both!"
     assert num_classes is not None, "You need to provide a value for <num_classes> when using 'Gregs_Regularizer' in CompileOutputFunctions()"
     reg = 0
@@ -58,13 +58,13 @@ def add_balanced_regularizers_to_NLL(cnn, regularizers=[], relative_weightings=[
     assert isinstance(regularizers,[list,tuple])
     assert len(regularizers)==len(relative_weightings), "Nope, try again."
 
-    print "Experimental Gregs_Regularizer_balance:: enabled   [You need to call CNN.Gregs_Regularizer_balance(_data_, _labels_, ...) initially and then also from time to time, to update the internal factor(s)!]"
+    print("Experimental Gregs_Regularizer_balance:: enabled   [You need to call CNN.Gregs_Regularizer_balance(_data_, _labels_, ...) initially and then also from time to time, to update the internal factor(s)!]")
     cnn.Gregs_Regularizer_balance__current_factors = [theano.shared(np.float32(1e-5)) for x in relative_weightings]
     cnn.Gregs_Regularizer_balance__relative_weightings   = relative_weightings
     
     cnn._Gregs_Regularizer_balancer_loss_getter = theano.function([cnn.x, cnn.y],[cnn.output_layer_Loss]+regularizers)
-    print "todo: make Gregs_Regularizer_balancer() smarter: add a call-counter and determine how often it actually needs to update the values! (save computational time, especially if it is unnecessarily called after every update step)"
-    print "todo: make this a stand-alone function, e.g. 'add_regularizer_balanced()'"
+    print("todo: make Gregs_Regularizer_balancer() smarter: add a call-counter and determine how often it actually needs to update the values! (save computational time, especially if it is unnecessarily called after every update step)")
+    print("todo: make this a stand-alone function, e.g. 'add_regularizer_balanced()'")
     def Gregs_Regularizer_balancer(*args):
         ret = cnn._Gregs_Regularizer_balancer_loss_getter(*args)
         original_nll_, reg_losses = ret[0], ret[1:]

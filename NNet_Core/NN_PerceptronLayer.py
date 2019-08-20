@@ -82,14 +82,14 @@ class PerceptronLayer(object):
 
         if InputNoise!=None:
             self.InputNoise=InputNoise
-            print "PerceptronLayer::"+str(PerceptronLayer)+"InputNoise =",InputNoise
+            print("PerceptronLayer::"+str(PerceptronLayer)+"InputNoise ="+InputNoise)
             rng = numpy.random.RandomState(int(time.time()))
             theano_rng = RandomStreams(rng.randint(2 ** 30))
             self.input = theano_rng.binomial(size=input.shape, n=1, p=1 - self.InputNoise,dtype=theano.config.floatX) * input
         else:
             self.input = input
             self.InputNoise=None
-        print "PerceptronLayer( #Inputs =",n_in,"#Outputs =",n_out,")"
+        print("PerceptronLayer( #Inputs ="+n_in+"#Outputs ="+n_out,")")
 
         if W==None:
 
@@ -106,7 +106,7 @@ class PerceptronLayer(object):
             else:
                 self.W = theano.shared(value=W_values, name='W_perceptron'+str(n_in)+'.'+str(n_out), borrow=True)
         else:
-            print "Directly using given W (",W,"), not training on it in this layer!"#as this should happen in the other layer where this W came from.
+            print("Directly using given W ("+W+"), not training on it in this layer!")#as this should happen in the other layer where this W came from.
             self.W = W
 
 
@@ -121,7 +121,7 @@ class PerceptronLayer(object):
 
         self.Activation_noise = None
         if bDropoutEnabled_:
-            print "Dropout..."
+            print("Dropout...")
             self.Activation_noise = theano.shared(np.float32(0.5))
             rng = T.shared_randomstreams.RandomStreams(int(time.time()))
             #(n_out,)
@@ -143,13 +143,13 @@ class PerceptronLayer(object):
         elif ActivationFunction=='abs': #symmetrically rectified linear unit ,range = [0,inf]
             self.output = T.abs_(lin_output)
         elif ActivationFunction=='sigmoid': #range = [0,1]
-            print "WARNING: sig() used! Consider using abs() or relu() instead" # (abs > relu > tanh > sigmoid)
+            print("WARNING: sig() used! Consider using abs() or relu() instead") # (abs > relu > tanh > sigmoid)
             b_values = 0.5*numpy.ones( (n_out,), dtype=theano.config.floatX)
             self.b.set_value(b_values)
             self.output = T.nnet.sigmoid(lin_output)#1/(1 + T.exp(-lin_output))
         elif ActivationFunction=='linear':
             if b_experimental_inhibition_groups==0:
-                print "Warning: linear activation function! I hope this is the output layer?"
+                print("Warning: linear activation function! I hope this is the output layer?")
             self.output = (lin_output)
         elif ActivationFunction.startswith("maxout"):
             r=int(ActivationFunction.split(" ")[1])
@@ -189,7 +189,7 @@ class PerceptronLayer(object):
         """ exactly <num_nonzero> incoming weights per neuron will have a value of <scale>, the others will have a tiny random value"""
         n_in  = self.n_in
         n_out = self.output_shape[1]       
-        print "MLP::random_sparse_initialization::(num_nonzero =",num_nonzero,", scale =",scale,")"
+        print("MLP::random_sparse_initialization::(num_nonzero ="+num_nonzero+", scale ="+scale+")")
         assert n_in > num_nonzero
         
         w = numpy.asarray(numpy.random.uniform(
@@ -248,7 +248,7 @@ class PerceptronLayer(object):
 
 
     def negative_log_likelihood_modulated_margin(self, y, modulation=1, margin=0.7, penalty_multiplier = 0):
-        print "negative_log_likelihood_modulated_margin:: Penalty down to ",100.*penalty_multiplier,"% if prediction is close to the target! Threshold is",margin
+        print("negative_log_likelihood_modulated_margin:: Penalty down to "+100.*penalty_multiplier+"%"+ "if prediction is close to the target! Threshold is"+margin)
         penalty_multiplier = np.float32(penalty_multiplier)
         margin = np.float32(margin)
         selected = self.class_probabilities[T.arange(y.shape[0]),y]
@@ -284,7 +284,7 @@ class PerceptronLayer(object):
         if Mask==None:
             return T.mean( (self.output - Target)**2 )
         else:
-            print "squared_distance::Masked"
+            print("squared_distance::Masked")
             return T.mean( ((self.output - Target)*T.concatenate( (Mask,Mask,Mask),axis=1 )  )**2 ) #assuming RBG input
 
 
@@ -301,7 +301,7 @@ class PerceptronLayer(object):
 
 
     def __make_window(self):
-        print "window is on 32x32, fixed sigma, assuming RGB."
+        print("window is on 32x32, fixed sigma, assuming RGB.")
         denom = 29.8
         x0= 16
         sig = 19
@@ -318,7 +318,7 @@ class PerceptronLayer(object):
             #XX = window#T.TensorConstant(T.TensorType(theano.config.floatX,[True,False])(),data=window)
             return -T.mean( (T.log(self.class_probabilities )*Target + T.log(1.0 - self.class_probabilities)*(1.0-Target)) )# #.reshape(new_shape)[index[0]:index[2],index[1]:index[3]]
         else:
-            print "cross_entropy::Masked, no window"
+            print("cross_entropy::Masked, no window")
             return -T.mean( (T.log(self.class_probabilities )*Target + T.log(1.0 - self.class_probabilities)*(1.0-Target))*T.concatenate( (Mask,Mask,Mask),axis=1 ) )# #.reshape(new_shape)[index[0]:index[2],index[1]:index[3]]#assuming RBG input
 
 
@@ -369,12 +369,12 @@ class PerceptronLayer(object):
             xin = xin.input_layer
             layerz += 1
 
-        print "CompileAutoencoderTrainingFunction... ChainLength =",layerz
+        print("CompileAutoencoderTrainingFunction... ChainLength ="+layerz)
 
         TARGET = T.fmatrix('x_raw_input')
 
         if b_use_cross_entropy_err==False:
-            print "Using squared error (not using cross_entropy): training on output (e.g. sigmoid!) directly instead of softmax"
+            print("Using squared error (not using cross_entropy): training on output (e.g. sigmoid!) directly instead of softmax")
             cost = self.squared_distance(TARGET)
         else:
             cost = self.cross_entropy(TARGET)
@@ -398,7 +398,7 @@ class PerceptronLayer(object):
 
         self.SGD_updates=[]
         for param_i, grad_i, last_grad_i, pLR_i in zip(all_params, self.output_layer_Gradients, self.last_grads, self.RPROP_LRs ):
-            print "warning: not sgd"
+            print("warning: not sgd")
             
             if mode=="sgd":
                 self.SGD_updates.append((param_i, param_i  - cnn_symbolic_SGD_LR *  grad_i ))#last_grad_i )) # use if Global_use_unique_LR==1 (1-self.SGD_weight_decay)*param_i

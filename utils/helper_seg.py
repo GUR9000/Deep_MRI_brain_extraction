@@ -241,7 +241,7 @@ class PatchCreator():
             self.file_names = nfiles
         else:
             self.file_names = [x[0] for x in nfiles]
-        print "loading..."
+        print("loading...")
         n = len(nfiles)
 
         self.num_channels = None
@@ -319,7 +319,7 @@ class PatchCreator():
             
             
             if d.shape[:3]!=l.shape[:3] and l.shape[:3]!=(1,1,1):
-                print "DATA SHAPE MISMATCH! transposing labels..."
+                print("DATA SHAPE MISMATCH! transposing labels...")
                 l=np.transpose(l,axes=[0,2,1])
             assert d.shape[:3]==l.shape[:3] or l.shape[:3]==(1,1,1)
             
@@ -327,7 +327,7 @@ class PatchCreator():
                 self.num_channels = d.shape[3]
             assert d.shape[3]==self.num_channels
             if self.num_channels==5:
-                print "warning: removing channel 2 (starting at 0)"
+                print("warning: removing channel 2 (starting at 0)")
                 d = np.concatenate( (d[...,:2],d[...,3:]),axis=3) #x,y,z,channels
             
             
@@ -344,14 +344,14 @@ class PatchCreator():
                 
                 
                 
-            print 'Loaded...',100.*(i+1)/n,"%",d.shape,addtnl_info_str, f  #, self.labels[-1].shape  #,np.unique(self.labels[-1]) #(143, 4, 175, 127) (143, 175, 127) LG0004_inclLabels.cp
+            print('Loaded...'+ 100.*(i+1)/n,+" % "+d.shape,addtnl_info_str+" "+f)  #, self.labels[-1].shape  #,np.unique(self.labels[-1]) #(143, 4, 175, 127) (143, 175, 127) LG0004_inclLabels.cp
             
             if pad_last_dimension and (d.shape[-1] < self.CNET_Input_Size + padding_margin):
                 add_this = int((padding_margin + self.CNET_Input_Size - d.shape[-1])/2.)
                 d = pad_data(d, add_this, mode='constant')
                 #            if l.shape[-1] < self.CNET_Input_Size:
                 l = pad_data(l, add_this, mode='constant')
-                print '>> padded to:', d.shape
+                print('>> padded to: '+d.shape)
             self.data.append(d)# format: (x,channels,y,z)
             self.labels.append(l)
         
@@ -363,9 +363,9 @@ class PatchCreator():
 
         self.number_of_images_test_set = int(self.CNET_data_NumImagesInData - self.training_set_size)
 
-        print "Total n. of examples:",self.CNET_data_NumImagesInData,"images/volumes"
-        print 'Training on',self.training_set_size,'images/volumes'
-        print 'Testing on ',self.number_of_images_test_set,'images/volumes'
+        print("Total n. of examples: " + self.CNET_data_NumImagesInData+" images/volumes")
+        print('Training on '+self.training_set_size+' images/volumes')
+        print('Testing on '+self.number_of_images_test_set+' images/volumes')
 
         self._getTestImage_current_file=self.training_set_size # <self.training_set_size> is the first non-training file
 
@@ -376,7 +376,7 @@ class PatchCreator():
 
 
     def greyvalue_pad_data(self, cnn):
-        print self,':: greyvalue_pad_data()'
+        print (self+' :: greyvalue_pad_data()')
         assert self.padded_once==False
         self.padded_once=True
         CNET_stride    = self.CNET_stride if self.use_max_fragment_pooling==0 else 1
@@ -385,12 +385,12 @@ class PatchCreator():
 
         offset_l = self.CNET_labels_offset[0]
         offset_r = offset_l + input_s
-        print '\nold shapes',np.unique([d.shape for d in self.data])        
+        print('\nold shapes'+ np.unique([d.shape for d in self.data]))       
         self.data = [greyvalue_data_padding(dat, offset_l, offset_r) for dat in self.data]
 
 
         self.labels = [np.asarray(np.pad(lab, pad_width=[(offset_l,offset_r),(offset_l,offset_r),(offset_l,offset_r)],mode='constant'),dtype='int16') for lab in self.labels if lab.shape[0] != 1] + [lab for lab in self.labels if lab.shape[0] == 1]
-        print '\nnew shapes',np.unique([d.shape for d in self.data])
+        print('\nnew shapes',np.unique([d.shape for d in self.data]))
 
         
         for d,l in zip(self.data,self.labels):
@@ -494,5 +494,5 @@ class PatchCreator():
 
 
 if __name__ == '__main__':
-    print "please execute main_train.py instead!"
+    print("please execute main_train.py instead!")
 

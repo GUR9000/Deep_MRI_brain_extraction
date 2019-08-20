@@ -1,0 +1,5 @@
+nibabel
+h5py
+Theano
+numpy
+pylearn

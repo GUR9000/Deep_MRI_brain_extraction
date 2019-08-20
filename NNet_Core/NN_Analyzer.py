@@ -43,7 +43,7 @@ class Analyzer(object):
     def _runonce(self):
         if self._ranonce:
             return
-        print self,'compiling...'
+        print(self+'compiling...')
         self._output_function = theano.function([self._cnn.layers[0].input], [lay.output for lay in self._cnn.layers])
         self._ranonce=True
         ####################
@@ -51,7 +51,7 @@ class Analyzer(object):
     def _runonce2(self):
         if self._ranonce2:
             return
-        print self,'compiling...'
+        print(self+'compiling...')
         output_layer_Gradients = T.grad(self._cnn.output_layer_Loss, self._cnn.params, disconnected_inputs="warn")
         self._output_function2 = theano.function([self._cnn.x, self._cnn.y], [x for x in output_layer_Gradients], on_unused_input='warn')            
             
@@ -64,12 +64,12 @@ class Analyzer(object):
         self._runonce()
         outputs = self._output_function(*input)
         print
-        print 'Analyzing internal outputs of network',self._cnn,' (I am',self,') ... '
+        print('Analyzing internal outputs of network'+self._cnn+' (I am',self,') ... ')
         for lay,out in zip(self._cnn.layers, outputs):
             mi,ma = np.min(out), np.max(out)
             mea,med = np.mean(out),np.median(out)
             std = np.std(out)
-            print '{:^100}: {:^30}, min/max = [{:9.5f}, {:9.5f}], mean/median = ({:9.5f}, {:9.5f}), std = {:9.5f}'.format(lay,out.shape,mi,ma,mea,med,std)
+            print('{:^100}: {:^30}, min/max = [{:9.5f}, {:9.5f}], mean/median = ({:9.5f}, {:9.5f}), std = {:9.5f}'.format(lay,out.shape,mi,ma,mea,med,std))
         print
         return outputs
         ####################
@@ -80,7 +80,7 @@ class Analyzer(object):
         self._runonce2()
         outputs = self._output_function2(*input)
         print
-        print 'Analyzing internal gradients of network',self._cnn,' (I am',self,') ... '
+        print('Analyzing internal gradients of network'+self._cnn+' (I am',self,') ... ')
         i = 0
         j = 0
         for lay in self._cnn.layers:
@@ -96,9 +96,9 @@ class Analyzer(object):
                     mi,ma = np.min(out), np.max(out)
                     mea,med = np.mean(out),np.median(out)
                     std = np.std(out)
-                    print '{:^100}: {:^30}, min/max = [{:9.5f}, {:9.5f}], mean/median = ({:9.5f}, {:9.5f}), std = {:9.5f}'.format(lay,out.shape,mi,ma,mea,med,std)
+                    print('{:^100}: {:^30}, min/max = [{:9.5f}, {:9.5f}], mean/median = ({:9.5f}, {:9.5f}), std = {:9.5f}'.format(lay,out.shape,mi,ma,mea,med,std))
             else:
-                print '{:^100}: no parameters'.format(lay)
+                print('{:^100}: no parameters'.format(lay))
             i+=j
         print
         return outputs

@@ -168,10 +168,10 @@ class ConvPoolLayer3D(object):
         W_bound = numpy.sqrt(3. / (fan_in + fan_out))#W_bound = 0.035#/(np.sqrt(fan_in/1400))##was 0.02 which was fine. #numpy.sqrt(0.04 / (fan_in + fan_out)) #6.0 / numpy.prod(filter_shape[1:]) #
 
         if verbose:
-            print "ConvPoolLayer3D"+("(FFT_based)" if b_use_FFT_convolution else "")+":"
-            print "   input (image) =",input_shape
-            print "   filter        =",filter_shape," @ std =",W_bound
-            print "   poolsize",poolsize
+            print("ConvPoolLayer3D"+("(FFT_based)" if b_use_FFT_convolution else "")+":")
+            print("   input (image) =" + input_shape)
+            print("   filter        ="+ filter_shape + " @ std = " + W_bound)
+            print(" poolsize "+ poolsize)
         
         if W==None:
             self.W = theano.shared(
@@ -231,9 +231,9 @@ class ConvPoolLayer3D(object):
 
 
         if bDropoutEnabled_:
-            print "   dropout: on"
+            print("   dropout: on")
             if b_use_FFT_convolution:
-                print "   !!! WARNING: b was already added, this might mess things up!\n"*2
+                print("   !!! WARNING: b was already added, this might mess things up!\n"*2)
                 raise NotImplementedError("BAD: FFT & Dropout")
 
 
@@ -256,7 +256,7 @@ class ConvPoolLayer3D(object):
             if input_shape[0]==None:
                 output_shape[0] = input_shape[0]
             output_shape=tuple(output_shape)
-            print '   dense_output_from_fragments:: (lin_output) reshaped into dense volume...' #class_probabilities, output too...
+            print('   dense_output_from_fragments:: (lin_output) reshaped into dense volume...')#class_probabilities, output too...
             lin_output = self.combine_fragments_to_dense_bxcyz(lin_output, output_shape)  #(batch, x, channels, y, z)
 
         self.lin_output = lin_output
@@ -274,8 +274,8 @@ class ConvPoolLayer3D(object):
             output_shape[0] = input_shape[0]
         output_shape=tuple(output_shape)
         if verbose:
-            print "   output        =",output_shape, "Dropout",("enabled" if bDropoutEnabled_ else "disabled")
-            print "   ActivationFunction =",self.ActivationFunction
+            print("   output        ="+output_shape, "Dropout"+ ("enabled" if bDropoutEnabled_ else "disabled"))
+            print("   ActivationFunction = " +self.ActivationFunction)
         self.output_shape = output_shape
 
 
@@ -329,8 +329,8 @@ class ConvPoolLayer3D(object):
       zero = np.array((0), dtype=theano.config.floatX)
       embedding = T.alloc( zero, 1, sh[1]*output_stride[0], sh[2], sh[3]*output_stride[1], sh[4]*output_stride[2]) # first arg. is fill-value (0 in this case) and not an element of the shape
       ix = offset_map(output_stride)
-      print "      output_stride",output_stride
-      print "      example_stride",example_stride
+      print("      output_stride"+ output_stride)
+      print ("      example_stride"+example_stride)
       for i,(n,m,k) in enumerate(ix):
           embedding = T.set_subtensor(embedding[:,n::output_stride[0],:,m::output_stride[1],k::output_stride[2]], ttensor[i::example_stride])
       return embedding
@@ -406,7 +406,7 @@ class ConvPoolLayer3D(object):
 
 
     def negative_log_likelihood_modulated_margin(self, y, modulation=1, margin=0.7, penalty_multiplier = 0):
-        print "negative_log_likelihood_modulated_margin:: Penalty down to ",100.*penalty_multiplier,"% if prediction is close to the target! Threshold is",margin
+        print("negative_log_likelihood_modulated_margin:: Penalty down to "+100.*penalty_multiplier+ "%" + "if prediction is close to the target! Threshold is"+ margin)
         penalty_multiplier = np.float32(penalty_multiplier)
         margin = np.float32(margin)
         selected = self.class_probabilities[T.arange(y.shape[0]),y]
@@ -428,7 +428,7 @@ class ConvPoolLayer3D(object):
     def squared_distance_w_margin(self, TARGET, margin=0.3):
         """  output: scalar float32
         """
-        print "Conv3D::squared_distance_w_margin (binary predictions)."
+        print("Conv3D::squared_distance_w_margin (binary predictions).")
         margin = np.float32(margin)
         out = self.output
         NULLz  = T.zeros_like(out)
@@ -474,7 +474,7 @@ class ConvPoolLayer3D(object):
             # represents a mistake in prediction
             return T.mean(T.neq(self.class_prediction, y))
         else:
-            print "something went wrong"
+            print("something went wrong")
             raise NotImplementedError()
 
 

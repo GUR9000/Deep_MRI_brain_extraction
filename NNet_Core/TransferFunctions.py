@@ -59,7 +59,7 @@ def parse_transfer_function(string_identifier, slope_parameter = None):
         Activation_f = T.abs_
     elif string_identifier in ['plu','PLu','PLU','piecewise']: #piece-wise linear function
         string_identifier = "PLU"
-        print "parse_transfer_function::Remember to optimize the 'slope_parameter'"
+        print("parse_transfer_function::Remember to optimize the 'slope_parameter'")
         assert slope_parameter is not None,"...and better pass it to this function, as well! (type: Theano.Tensor, shape: same as activation, unif. random values [-1,1] should be fine)"
         Activation_f = lambda x: T.maximum(0,x) + T.minimum(0,x) * slope_parameter
     elif "maxout" in string_identifier:

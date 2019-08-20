@@ -52,7 +52,7 @@ def max_pool_along_second_axis(sym_input, pool_factor):
     
     
 try:
-    import pylearn2.linear.conv2d_c01b as convnet#('channel', x, y, 'batch')
+    import pylearn.linear.conv2d_c01b as convnet#('channel', x, y, 'batch')
 except:
     pass
 
@@ -139,11 +139,11 @@ class ConvPoolLayer(object):
         assert output_axes in ["theano","native"]
         assert input_axes  in ["theano","native"]
         if b_ReverseConvolution:
-            print "DeconvPoolLayer(2D)"
+            print("DeconvPoolLayer(2D)")
             bTheanoConv = 0
         else:
-            print "ConvPoolLayer(2D)"
-        print "   input (image) =",input_shape
+            print("ConvPoolLayer(2D)")
+        print( "   input (image) = "+input_shape)
             
         assert use_fragment_pooling == 0,"todo"
         assert dense_output_from_fragments==0,"todo"
@@ -181,11 +181,11 @@ class ConvPoolLayer(object):
         W_bound = numpy.sqrt(3. / (fan_in + fan_out)) #6.0 / numpy.prod(filter_shape[1:]) #
 
 
-        print "   filter        =",filter_shape," @ std =",W_bound
+        print("   filter        = "+filter_shape+ " @ std ="+W_bound)
 
         #        print "w_init std =",W_bound
         if bTheanoConv==False:
-            print "WARNING: layout of W has changed (bTheanoConv==False)! Beware if ConvPoolLayer.W is directly accessed!"
+            print("WARNING: layout of W has changed (bTheanoConv==False)! Beware if ConvPoolLayer.W is directly accessed!")
         if W==None:
             self.W = theano.shared(#numpy.asarray(        self.rng.normal(loc=0, scale = W_bound, size=filter_shape), dtype=theano.config.floatX)
             numpy.asarray(numpy.random.normal(0, W_bound, filter_shape if bTheanoConv else (filter_shape[1],filter_shape[2],filter_shape[3],filter_shape[0]) ), dtype=theano.config.floatX)
@@ -261,12 +261,12 @@ class ConvPoolLayer(object):
                 
             if is_error:
                 print
-                print "ERROR/WARNING: Please use a different filter shape OR different input shape"
-                print "2D Input shape: ",input_shape_xy
-                print "2D Filter shape:",filter_shape_xy
-                print "2D Conv. output:",sp_after_conv,"is not divisible by 2 (pooling)!"
+                print("ERROR/WARNING: Please use a different filter shape OR different input shape")
+                print("2D Input shape: "+input_shape_xy)
+                print("2D Filter shape: "+filter_shape_xy)
+                print("2D Conv. output: "+sp_after_conv+"is not divisible by 2 (pooling)!")
                 
-                raise StandardError("ERROR/WARNING: Please use a different filter shape OR different input shape")
+                raise("ERROR/WARNING: Please use a different filter shape OR different input shape")
             
             #shape of pooled_out , e.g.: (1,2,27,27) for 2 class-output
             self.conv_out = conv.conv2d(input=input, 
@@ -281,19 +281,19 @@ class ConvPoolLayer(object):
             #channels must be divisible by 4. Must be C contiguous. You can enforce this by calling theano.sandbox.cuda.basic_ops.gpu_contiguous on it.
             #filters: (in_channels, filter_x, filter_y, num_filters)
             #output: (output channels, output rows, output cols, batch size)
-            print "WARNING: reshaping input & output, to match the cuda-convnet convention! Modify to gain speed."
-            print "Use batchsize = n*128  (n=1,2,3,...)"
+            print("WARNING: reshaping input & output, to match the cuda-convnet convention! Modify to gain speed.")
+            print("Use batchsize = n*128  (n=1,2,3,...)")
             assert self.number_of_filters%16==0,"Not supported by Alex' code"
-            print "input will be automatically reshaped (as if TheanoConv was used)"
+            print("input will be automatically reshaped (as if TheanoConv was used)")
             cc_input_shape = None
             if b_ReverseConvolution:
-                print "b_ReverseConvolution:: using strange 'input_shape' (-2 instead of -1)"
-                print "input_shape",input_shape
+                print("b_ReverseConvolution:: using strange 'input_shape' (-2 instead of -1)")
+                print("input_shape"+input_shape)
                 if input_axes=="theano":
                     cc_input_shape = (convolution_stride*input_shape[2] + self.filter_shape[2]-2, convolution_stride*input_shape[3] + self.filter_shape[3]-2)
                 else:
                     cc_input_shape = (convolution_stride*input_shape[1] + self.filter_shape[2]-2, convolution_stride*input_shape[2] + self.filter_shape[3]-2)
-                print "cc_input_shape ",cc_input_shape 
+                print("cc_input_shape " +cc_input_shape)
             tmp = convnet.Conv2D(self.W, 
                                  input_axes =('b', 'c', 0, 1) if (b_ReverseConvolution==False and input_axes=="theano" or b_ReverseConvolution==True and output_axes=="theano")  else ('c', 0, 1, 'b'), 
                                  output_axes=('b', 'c', 0, 1) if (b_ReverseConvolution==False and output_axes=="theano" or b_ReverseConvolution==True and input_axes=="theano") else ('c', 0, 1, 'b'), 
@@ -339,7 +339,7 @@ class ConvPoolLayer(object):
             output_shape=tuple(output_shape)
         else:
             output_shape = tuple(theano.function([input], pooled_out.shape,mode='FAST_COMPILE' if bTheanoConv else 'FAST_RUN')(numpy.zeros(input_shape,dtype=numpy.float32)))
-        print "   output        =",output_shape
+        print("   output        =" + output_shape)
 
         self.output_shape = output_shape
 
@@ -361,7 +361,7 @@ class ConvPoolLayer(object):
 #       output        = (None, 15, 28, 28)
 
         if bDropoutEnabled_:
-            print "Dropout enabled."
+            print("Dropout enabled.")
             self.SGD_dropout_rate = theano.shared(np.asscalar(np.ones(1,dtype=np.float32)*0.5))
             rng = T.shared_randomstreams.RandomStreams(int(time.time()))
             #(self.output_shape[2],self.output_shape[2])
@@ -561,5 +561,5 @@ class ConvPoolLayer(object):
             # represents a mistake in prediction
             return T.mean(T.neq(self.class_prediction, y))
         else:
-            print "something went wrong"
+            print("something went wrong")
             raise NotImplementedError()

@@ -110,15 +110,15 @@ if __name__=="__main__":
 
     sym_ret = my_max_pool_3d(sym_input)#my_max_pool_3d_stupid(sym_input)
     f_maxp_3d = theano.function([sym_input],sym_ret)
-    print "ok"
+    print("ok")
     print
 
     for i in range(5):
         inp = np.random.rand(1,16+32*i,32,16+32*i,16+32*i).astype('float32')
-        print 16+32*i,"^ 3"
-        print inp.shape
+        print(16+32*i,"^ 3")
+        print(inp.shape)
         t0 = time.time()
-        print f_maxp_3d(inp).shape
-        print time.time()-t0,"s"
+        print(f_maxp_3d(inp).shape)
+        print(time.time()-t0,"s")
     exit()
 

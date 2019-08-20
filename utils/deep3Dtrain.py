@@ -33,7 +33,7 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR TH
 """
 
 import argparse
-import utils.data_and_CV_handler as data_and_CV_handler
+import data_and_CV_handler as data_and_CV_handler
 import numpy as np
 
 
@@ -144,9 +144,9 @@ def train(list_training_data, list_training_labels, list_test_data,
     if load_previous_save:
         try:
             cnn.LoadParameters(save_name+"/end_"+str(save_name)+".save")
-            print 'load_previous_save:: found and loaded saved parameters'
+            print('load_previous_save:: found and loaded saved parameters')
         except:
-            print 'load_previous_save:: found no saved parameters or CNN is incompatible'
+            print('load_previous_save:: found no saved parameters or CNN is incompatible')
     Segmentation_trainer.train_net(cnn, patchCreator, num_patches_per_batch=num_patches_per_batch,
                                    LR_start=Initial_learning_rate, momentum=momentum,
                                    save_name=save_name, b_no_test_set=True, b_use_ext_error=0,

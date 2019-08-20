@@ -239,12 +239,12 @@ class LR_scheduler(object):
 
         if self._max_training_steps is not None:
             if (current_step >= self._max_training_steps):
-                print self,":: Training stopped as the iteration limit was reached!"
+                print(self+":: Training stopped as the iteration limit was reached!")
                 terminate_training = True
 
         if self._max_training_time_minutes is not None:
             if (time.clock() - self._training_start_time)/60. > self._max_training_time_minutes:
-                print self,":: Training stopped as the time limit was reached!"
+                print(self+":: Training stopped as the time limit was reached!")
                 terminate_training = True
 
         if self._automated_LR_scaling_enabled:
@@ -256,23 +256,23 @@ class LR_scheduler(object):
                     old = self._cnn.get_SGD_LR()
                     self._automated_LR_scaling_last_step_active = current_step
                     self._cnn.set_SGD_LR( np.float32( self._automated_LR_scaling_magnitude * old))
-                    print self,":: AUTOMATED LR-control: Reducing LR:  old value was "+str(old)+" new value is "+str(self._cnn.get_SGD_LR())
+                    print(self+":: AUTOMATED LR-control: Reducing LR:  old value was "+str(old)+" new value is "+str(self._cnn.get_SGD_LR()))
                     self._automated_LR_reduction_steps_so_far += 1
 
                     if 1./(self._automated_LR_scaling_magnitude**self._automated_LR_reduction_steps_so_far) >= self._automated_LR_scaling_max_LR_reduction_factor_before_termination:
                         terminate_training = True
-                        print self,":: AUTOMATED LR-control: Terminating training as maximum reduction rate was reached."
+                        print(self+":: AUTOMATED LR-control: Terminating training as maximum reduction rate was reached.")
 
         if self._automated_kill_if_bad_enabled and time.clock() - self._training_start_time > self._automated_kill_if_bad__time_of_decision_minutes*60:
             if current_score < self._automated_kill_if_bad__killscore:
-                print self,":: AUTOMATED LR-control: Terminating training as score is too low."
+                print(self+":: AUTOMATED LR-control: Terminating training as score is too low.")
                 terminate_training = True
 
         # early kill
         if self._automated_kill_after_n_unchanged_steps is not None:
             if (current_step - self._automated_LR_reduction__best_score_at_step) > self._automated_kill_after_n_unchanged_steps:
                 terminate_training = True
-                print self,":: AUTOMATED Kill-control: Terminating training as unchanged accuracy for "+str(self._automated_kill_after_n_unchanged_steps)+" steps."
+                print(self+":: AUTOMATED Kill-control: Terminating training as unchanged accuracy for "+str(self._automated_kill_after_n_unchanged_steps)+" steps.")
 
 #        print self.__dict__
 
@@ -303,7 +303,7 @@ class AutosaveControl:
         self.LR_totalDiff = LR_end-LR_start
         self.CNN=cnn
         self.exponential_interpolation=exponential_interpolation
-        print "Autosaver:: saving interval set to",self.autosave_frequency,"minutes"#. Total training time is:",self.training_termination_time/60.0,"minutes (",self.training_termination_time/60.0**2,"h)"
+        print("Autosaver:: saving interval set to"+self.autosave_frequency+"minutes")#. Total training time is:",self.training_termination_time/60.0,"minutes (",self.training_termination_time/60.0**2,"h)"
         #print "AutosaveControl:: Controls now the momentum! scanning from 0.5 to 0.95 (reaches 0.9 after 80% of the time passed)"
 
 #        print "AUTO-LR-Control:: initial LR =",LR_start,"final LR will be:",LR_end,(". Linear interpolation." if not exponential_interpolation else ". Exponential interpolation (decay).")
@@ -333,7 +333,7 @@ class AutosaveControl:
             self.autosave_last_printed = time.clock()
             tmin = ((time.clock()-self.training_start_time)/60.)
 #            print self.ratio_done()*100.0,' % done'
-            print "Training time so far =",int(tmin/60),'h',int(tmin%60),"min. Speed:",(iter_count/(time.clock()-self.training_start_time)),"batches/s"
+            print("Training time so far ="+int(tmin/60)+'h'+int(tmin%60)+"min. Speed:",(iter_count/(time.clock()-self.training_start_time))+"batches/s")
 
         return False
         #######################################################################

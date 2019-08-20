@@ -58,7 +58,7 @@ def predict_all(cnn, patchCreator, apply_cc_filtering, set_selection = 'all',
     for input_to_cnn_depth in [4]:
         if hasattr(cnn,"output")== False or cnn.output==None:
             import theano
-            print "compiling output function"
+            print("compiling output function")
             cnn.output   = theano.function([cnn.x], cnn.layers[-1].class_probabilities_realshape )
 
         
@@ -155,12 +155,14 @@ def run_Net_on_Block(cnn, DATA, patchCreator, bool_predicts_on_softmax=None,
         import theano
         assert bool_predicts_on_softmax!=None,"must specify <bool_predicts_on_softmax>"
         if bool_predicts_on_softmax:
-            print "compiling output function (class_probabilities_realshape)"
-            print "WARNING: if this is a MALIS net, then this is WRONG!!!\n"*3
+            print("compiling output function (class_probabilities_realshape)")
+            print("WARNING: if this is a MALIS net, then this is WRONG!!!\n")
+            print("WARNING: if this is a MALIS net, then this is WRONG!!!\n")
+            print("WARNING: if this is a MALIS net, then this is WRONG!!!\n")
             print
             cnn.output   = theano.function([cnn.x], cnn.layers[-1].class_probabilities_realshape )
         else:
-            print "compiling output function (direc neuron output)"
+            print("compiling output function (direc neuron output)")
             cnn.output   = theano.function([cnn.x], cnn.layers[-1].output )
 
     CNET_stride    = patchCreator.CNET_stride if cnn.use_fragment_pooling==0 else 1
@@ -187,7 +189,7 @@ def run_Net_on_Block(cnn, DATA, patchCreator, bool_predicts_on_softmax=None,
 
     if added_data!=None:
         #assuming channels are last dim.
-        print "fusing:",DATA.shape,"+",s
+        print("fusing: " + DATA.shape + s)
         if DATA.ndim==added_data.ndim:
             newd = np.zeros( DATA.shape[:-1]+(s[-1]+DATA.shape[-1],),DATA.dtype)
             newd[...,:DATA.shape[-1]]=DATA
@@ -199,7 +201,7 @@ def run_Net_on_Block(cnn, DATA, patchCreator, bool_predicts_on_softmax=None,
         DATA = newd
     
     
-    print "Predicting data of shape:",DATA.shape
+    print("Predicting data of shape: " +DATA.shape)
 
     if patchCreator.padded_once==False:
         DATA = helper.greyvalue_data_padding(DATA, offset_l, offset_r)
@@ -211,7 +213,7 @@ def run_Net_on_Block(cnn, DATA, patchCreator, bool_predicts_on_softmax=None,
         assert len(s)==3
         second_input_data_2[offset_l:offset_l+s[0],offset_l:offset_l+s[1],offset_l:offset_l+s[2]]=second_input_data
         second_input_data=second_input_data_2
-        print "second_input_data (new) ~",second_input_data.shape
+        print("second_input_data (new) ~ "+ second_input_data.shape)
 
     ret_size_per_runonslice = cnn.layers[-1].output_shape[-1]*CNET_stride
 
@@ -224,7 +226,7 @@ def run_Net_on_Block(cnn, DATA, patchCreator, bool_predicts_on_softmax=None,
     ret_3d_cube = np.zeros( (n_classes,)+tuple(   DATA.shape[:3]   ) , dtype="float32")
 
     for i in range(n_runs_p_dim[0]):
-        print "COMPLETION =", 100.*i/n_runs_p_dim[0],"%"
+        print("COMPLETION ="+ 100.*i/n_runs_p_dim[0]+ " %")
         for j in range(n_runs_p_dim[1]):
             for k in range(n_runs_p_dim[2]):
                 offset = (ret_size_per_runonslice*i,ret_size_per_runonslice*(j),ret_size_per_runonslice*k)
@@ -297,8 +299,8 @@ def run_Net_on_multiple(patchCreator, input_to_cnn_depth=1, cnn = None,
     
     for opt_list_index in range(MIN, MAX):
         
-        print "-"*30
-        print "@",opt_list_index+1,"of max.",len(patchCreator.data)
+        print("-"*30)
+        print("@"+ opt_list_index+1 + "of max." + len(patchCreator.data))
         postfix = "" if opt_list_index==None else "_" + utilities.extract_filename(patchCreator.file_names[opt_list_index])[1] if isinstance(patchCreator.file_names[0], str) else str(patchCreator.file_names[opt_list_index]) if not isinstance(patchCreator.file_names[opt_list_index], tuple) else utilities.extract_filename(patchCreator.file_names[opt_list_index][0])[1]
         if opt_list_index is not None:
             is_training = "_train" if (opt_list_index < patchCreator.training_set_size) else "_test"
@@ -318,7 +320,7 @@ def run_Net_on_multiple(patchCreator, input_to_cnn_depth=1, cnn = None,
         
         save_pred(sav, this_save_name, output_filetype, save_prob_map)
     
-    print 'timings (len',len(timings),')',np.mean(timings),'+-',np.std(timings)
+    print('timings (len'+ len(timings)+') '+ np.mean(timings) + '+- '+ np.std(timings))
     return None
 
 
@@ -351,7 +353,7 @@ def save_pred(prediction, this_save_name, output_filetype, save_prob_map):
     else:
         raise NotImplementedError(output_filetype)
 
-    print "File saved as:",this_save_name
+    print("File saved as: "+ this_save_name)
     
     return 0
 
@@ -459,6 +461,6 @@ def save_pred(prediction, this_save_name, output_filetype, save_prob_map):
 
 
 if __name__ == '__main__':
-    print "please execute main_train.py instead!"
+    print("please execute main_train.py instead!")
 
 

@@ -1,8 +1,0 @@
-setup.py
-NNet_Core/deep3Dpredict.py
-NNet_Core/deep3Dtrain.py
-NNet_Core.egg-info/PKG-INFO
-NNet_Core.egg-info/SOURCES.txt
-NNet_Core.egg-info/dependency_links.txt
-NNet_Core.egg-info/requires.txt
-NNet_Core.egg-info/top_level.txt

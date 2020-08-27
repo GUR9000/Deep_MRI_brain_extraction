@@ -25,11 +25,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
 THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
 TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-version @23.4.14
-mod @ 26.9.14
 """
-
+from __future__ import print_function
 
 import numpy as np
 import theano
@@ -39,7 +36,7 @@ from theano import tensor as T
 def max_pool_along_second_axis(sym_input, pool_factor):
     """ for MLP and 2D conv"""
     s = None
-    for i in xrange(pool_factor):
+    for i in range(pool_factor):
         t = sym_input[:,i::pool_factor]
         if s is None:
             s = t
@@ -48,11 +45,10 @@ def max_pool_along_second_axis(sym_input, pool_factor):
     return s
 
 
-
 def max_pool_along_channel_axis(sym_input, pool_factor):
     """ for 3D conv."""
     s = None
-    for i in xrange(pool_factor):
+    for i in range(pool_factor):
         t = sym_input[:,:,i::pool_factor]
         if s is None:
             s = t
@@ -61,14 +57,12 @@ def max_pool_along_channel_axis(sym_input, pool_factor):
     return s
 
 
-
-
 def my_max_pool_3d(sym_input, pool_shape = (2,2,2)):
     """ this one is pure theano. Hence all gradient-related stuff is working! No dimshuffling"""
 
     s = None
     if pool_shape[2]>1:
-        for i in xrange(pool_shape[2]):
+        for i in range(pool_shape[2]):
             t = sym_input[:,:,:,:,i::pool_shape[2]]
             if s is None:
                 s = t
@@ -76,11 +70,10 @@ def my_max_pool_3d(sym_input, pool_shape = (2,2,2)):
                 s = T.maximum(s, t)
     else:
         s = sym_input
-
     if pool_shape[0]>1:
         temp = s
         s = None
-        for i in xrange(pool_shape[0]):
+        for i in range(pool_shape[0]):
             t = temp[:,i::pool_shape[0],:,:,:]
             if s is None:
                 s = t
@@ -90,14 +83,13 @@ def my_max_pool_3d(sym_input, pool_shape = (2,2,2)):
     if pool_shape[1]>1:
         temp = s
         s = None
-        for i in xrange(pool_shape[1]):
+        for i in range(pool_shape[1]):
             t = temp[:,:,:,i::pool_shape[0],:]
             if s is None:
                 s = t
             else:
                 s = T.maximum(s, t)
     sym_ret = s
-
     return sym_ret
 
 
@@ -105,20 +97,18 @@ if __name__=="__main__":
     import time
     inp = np.random.rand(1,64,32,64,64).astype('float32')
 
-
     sym_input = T.TensorType(dtype=theano.config.floatX, broadcastable=[False]*5)()
 
     sym_ret = my_max_pool_3d(sym_input)#my_max_pool_3d_stupid(sym_input)
     f_maxp_3d = theano.function([sym_input],sym_ret)
-    print "ok"
-    print
-
+    print("ok\n")
+    
     for i in range(5):
         inp = np.random.rand(1,16+32*i,32,16+32*i,16+32*i).astype('float32')
-        print 16+32*i,"^ 3"
-        print inp.shape
+        print(16+32*i,"^ 3")
+        print(inp.shape)
         t0 = time.time()
-        print f_maxp_3d(inp).shape
-        print time.time()-t0,"s"
+        print(f_maxp_3d(inp).shape)
+        print(time.time()-t0,"s")
     exit()
 

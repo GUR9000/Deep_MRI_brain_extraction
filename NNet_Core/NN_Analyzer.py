@@ -27,7 +27,7 @@ THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABI
 TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 """
-
+from __future__ import print_function
 import theano
 import theano.tensor as T
 import numpy as np
@@ -40,55 +40,51 @@ class Analyzer(object):
         self._ranonce2 = False
         ####################
         
+        
     def _runonce(self):
         if self._ranonce:
             return
-        print self,'compiling...'
+        print(self,'compiling...')
         self._output_function = theano.function([self._cnn.layers[0].input], [lay.output for lay in self._cnn.layers])
         self._ranonce=True
         ####################
     
+    
     def _runonce2(self):
         if self._ranonce2:
             return
-        print self,'compiling...'
+        print(self,'compiling...')
         output_layer_Gradients = T.grad(self._cnn.output_layer_Loss, self._cnn.params, disconnected_inputs="warn")
         self._output_function2 = theano.function([self._cnn.x, self._cnn.y], [x for x in output_layer_Gradients], on_unused_input='warn')            
-            
-#         = theano.function([self._cnn.layers[0].input, self._cnn.y], [lay.output for lay in self._cnn.layers])
         self._ranonce2=True
-        ####################
+
         
     def analyze_forward_pass(self, *input):
         """ input should be a list of all inputs. ((DO NOT INCLUDE labels/targets!))"""
         self._runonce()
         outputs = self._output_function(*input)
-        print
-        print 'Analyzing internal outputs of network',self._cnn,' (I am',self,') ... '
+        print()
+        print( 'Analyzing internal outputs of network',self._cnn,' (I am',self,') ... ')
         for lay,out in zip(self._cnn.layers, outputs):
             mi,ma = np.min(out), np.max(out)
             mea,med = np.mean(out),np.median(out)
             std = np.std(out)
-            print '{:^100}: {:^30}, min/max = [{:9.5f}, {:9.5f}], mean/median = ({:9.5f}, {:9.5f}), std = {:9.5f}'.format(lay,out.shape,mi,ma,mea,med,std)
-        print
+            print( '{:^100}: {:^30}, min/max = [{:9.5f}, {:9.5f}], mean/median = ({:9.5f}, {:9.5f}), std = {:9.5f}'.format(lay,out.shape,mi,ma,mea,med,std))
+        print()
         return outputs
-        ####################
 
 
     def analyze_gradients(self, *input):
         """ input should be a list of all inputs and labels/targets"""
         self._runonce2()
         outputs = self._output_function2(*input)
-        print
-        print 'Analyzing internal gradients of network',self._cnn,' (I am',self,') ... '
+        print()
+        print( 'Analyzing internal gradients of network',self._cnn,' (I am',self,') ... ')
         i = 0
         j = 0
         for lay in self._cnn.layers:
-
             try:
-                
                 j = len(lay.params)
-                
             except:
                 j = 0
             if j:
@@ -96,19 +92,9 @@ class Analyzer(object):
                     mi,ma = np.min(out), np.max(out)
                     mea,med = np.mean(out),np.median(out)
                     std = np.std(out)
-                    print '{:^100}: {:^30}, min/max = [{:9.5f}, {:9.5f}], mean/median = ({:9.5f}, {:9.5f}), std = {:9.5f}'.format(lay,out.shape,mi,ma,mea,med,std)
+                    print('{:^100}: {:^30}, min/max = [{:9.5f}, {:9.5f}], mean/median = ({:9.5f}, {:9.5f}), std = {:9.5f}'.format(lay,out.shape,mi,ma,mea,med,std))
             else:
-                print '{:^100}: no parameters'.format(lay)
+                print( '{:^100}: no parameters'.format(lay))
             i+=j
-        print
+        print()
         return outputs
-        ####################
-
-
-
-
-
-
-
-
-

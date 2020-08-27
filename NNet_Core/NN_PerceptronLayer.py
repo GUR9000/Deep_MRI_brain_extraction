@@ -42,7 +42,7 @@ from theano.tensor.shared_randomstreams import RandomStreams
 def max_pool_along_second_axis(sym_input, pool_factor):
     """ for MLP and 2D conv"""
     s = None
-    for i in xrange(pool_factor):
+    for i in range(pool_factor):
         t = sym_input[:,i::pool_factor]
         if s is None:
             s = t
@@ -82,14 +82,14 @@ class PerceptronLayer(object):
 
         if InputNoise!=None:
             self.InputNoise=InputNoise
-            print "PerceptronLayer::"+str(PerceptronLayer)+"InputNoise =",InputNoise
+            print("PerceptronLayer::"+str(PerceptronLayer)+"InputNoise =",InputNoise)
             rng = numpy.random.RandomState(int(time.time()))
             theano_rng = RandomStreams(rng.randint(2 ** 30))
             self.input = theano_rng.binomial(size=input.shape, n=1, p=1 - self.InputNoise,dtype=theano.config.floatX) * input
         else:
             self.input = input
             self.InputNoise=None
-        print "PerceptronLayer( #Inputs =",n_in,"#Outputs =",n_out,")"
+        print("PerceptronLayer( #Inputs =",n_in,"#Outputs =",n_out,")")
 
         if W==None:
 
@@ -106,7 +106,7 @@ class PerceptronLayer(object):
             else:
                 self.W = theano.shared(value=W_values, name='W_perceptron'+str(n_in)+'.'+str(n_out), borrow=True)
         else:
-            print "Directly using given W (",W,"), not training on it in this layer!"#as this should happen in the other layer where this W came from.
+            print("Directly using given W (",W,"), not training on it in this layer!") #as this should happen in the other layer where this W came from.
             self.W = W
 
 
@@ -117,21 +117,16 @@ class PerceptronLayer(object):
 
         lin_output = T.dot(self.input,self.W)  # + self.b
 
-
-
         self.Activation_noise = None
         if bDropoutEnabled_:
-            print "Dropout..."
+            print("Dropout...")
             self.Activation_noise = theano.shared(np.float32(0.5))
             rng = T.shared_randomstreams.RandomStreams(int(time.time()))
             #(n_out,)
             self.dropout_gate = np.float32(2.)*rng.binomial(lin_output.shape,np.float32( 1.), np.float32(1.)-self.Activation_noise ,dtype=theano.config.floatX) #rng.binomial((n_out,),1,1-self.Activations_noise_min,dtype=theano.config.floatX)
             lin_output =  lin_output * self.dropout_gate#.dimshuffle(('x', 0))             #(  1 - T.maximum(0.8-self.output, T.zeros_like(self.output))*
 
-
-
         lin_output = lin_output + self.b #add b after dropout
-
 
         if ActivationFunction=='tanh': #range = [-1,1]
             self.output = T.tanh(lin_output)# shape: (batch_size, num_outputs)
@@ -143,13 +138,13 @@ class PerceptronLayer(object):
         elif ActivationFunction=='abs': #symmetrically rectified linear unit ,range = [0,inf]
             self.output = T.abs_(lin_output)
         elif ActivationFunction=='sigmoid': #range = [0,1]
-            print "WARNING: sig() used! Consider using abs() or relu() instead" # (abs > relu > tanh > sigmoid)
+            print("WARNING: sig() used! Consider using abs() or relu() instead") # (abs > relu > tanh > sigmoid)
             b_values = 0.5*numpy.ones( (n_out,), dtype=theano.config.floatX)
             self.b.set_value(b_values)
             self.output = T.nnet.sigmoid(lin_output)#1/(1 + T.exp(-lin_output))
         elif ActivationFunction=='linear':
             if b_experimental_inhibition_groups==0:
-                print "Warning: linear activation function! I hope this is the output layer?"
+                print("Warning: linear activation function! I hope this is the output layer?")
             self.output = (lin_output)
         elif ActivationFunction.startswith("maxout"):
             r=int(ActivationFunction.split(" ")[1])
@@ -161,18 +156,14 @@ class PerceptronLayer(object):
 
         self.lin_output=lin_output
 
-
         self.class_probabilities = T.nnet.softmax(lin_output)# shape: (batch_size, num_outputs), num_outputs being e.g. the number of classes
 
         # compute prediction as class whose probability is maximal (in symbolic form)
         self.class_prediction = T.argmax(self.class_probabilities, axis=1)# shape: (batch_size,)
 
-
         if len(self.output_shape)>2:
             self.output = self.output.reshape(self.output_shape)
-            
         self.n_in = n_in
-
         if W==None:
             try:
                 a = self.flatW
@@ -183,27 +174,21 @@ class PerceptronLayer(object):
             self.params = [self.b]
 
 
-
-
     def random_sparse_initialization(self, num_nonzero = 15, scale = 1.):
         """ exactly <num_nonzero> incoming weights per neuron will have a value of <scale>, the others will have a tiny random value"""
         n_in  = self.n_in
         n_out = self.output_shape[1]       
-        print "MLP::random_sparse_initialization::(num_nonzero =",num_nonzero,", scale =",scale,")"
+        print("MLP::random_sparse_initialization::(num_nonzero =",num_nonzero,", scale =",scale,")")
         assert n_in > num_nonzero
-        
         w = numpy.asarray(numpy.random.uniform(
                 -numpy.sqrt(0.1 / (n_in + n_out)),
                 numpy.sqrt(0.1 / (n_in + n_out)),
                 (n_in, n_out)), dtype=theano.config.floatX)
-        
         base = np.random.permutation(range(n_in))
         for i in range(n_out):
             pick = np.random.permutation(base)[:num_nonzero]
             w[:,i][pick] = scale
         self.W.set_value(w)
-
-
 
 
     def randomize_weights(self, scale_w = 1.0):
@@ -223,7 +208,6 @@ class PerceptronLayer(object):
             b=0
 
         self.b.set_value(b * numpy.ones((n_out,), dtype=theano.config.floatX))
-
 
 
     def negative_log_likelihood(self, y):
@@ -248,13 +232,12 @@ class PerceptronLayer(object):
 
 
     def negative_log_likelihood_modulated_margin(self, y, modulation=1, margin=0.7, penalty_multiplier = 0):
-        print "negative_log_likelihood_modulated_margin:: Penalty down to ",100.*penalty_multiplier,"% if prediction is close to the target! Threshold is",margin
+        print("negative_log_likelihood_modulated_margin:: Penalty down to ",100.*penalty_multiplier,"% if prediction is close to the target! Threshold is",margin)
         penalty_multiplier = np.float32(penalty_multiplier)
         margin = np.float32(margin)
         selected = self.class_probabilities[T.arange(y.shape[0]),y]
         r = modulation*T.log(selected)
         return -T.mean(r*(selected<margin) + (0 if penalty_multiplier==0 else penalty_multiplier*r*(selected>=margin))  )
-
 
 
     def negative_log_likelihood_array(self, y):
@@ -274,8 +257,6 @@ class PerceptronLayer(object):
         return -T.mean( weight_vect.dimshuffle('x',0)*(T.log(self.class_probabilities  )[T.arange(y.shape[0]), y]))
         
 
-
-
     def squared_distance(self, Target, Mask = None):
         """Target is the TARGET image (vectorized), -> shape(x) = (batchsize, imgsize**2)
             output: scalar float32
@@ -284,7 +265,7 @@ class PerceptronLayer(object):
         if Mask==None:
             return T.mean( (self.output - Target)**2 )
         else:
-            print "squared_distance::Masked"
+            print("squared_distance::Masked")
             return T.mean( ((self.output - Target)*T.concatenate( (Mask,Mask,Mask),axis=1 )  )**2 ) #assuming RBG input
 
 
@@ -299,15 +280,13 @@ class PerceptronLayer(object):
             return T.mean( ((self.output - Target)*T.concatenate( (Mask,Mask,Mask),axis=1 ))**2 ,axis=1)#assuming RBG input
 
 
-
     def __make_window(self):
-        print "window is on 32x32, fixed sigma, assuming RGB."
+        print("window is on 32x32, fixed sigma, assuming RGB.")
         denom = 29.8
         x0= 16
         sig = 19
         fun = lambda z,x,y: (32/denom* np.exp(-(abs(x - x0))**3/(2*sig**3)))*(32/denom*np.exp(-(abs(y - x0))**3/(2*sig**3)))#, {x, 0, 32}, {y, 0, 32}
         return np.fromfunction(fun,(3,32,32))
-
 
 
     def cross_entropy(self, Target, Mask = None):#, index, new_shape):
@@ -318,9 +297,8 @@ class PerceptronLayer(object):
             #XX = window#T.TensorConstant(T.TensorType(theano.config.floatX,[True,False])(),data=window)
             return -T.mean( (T.log(self.class_probabilities )*Target + T.log(1.0 - self.class_probabilities)*(1.0-Target)) )# #.reshape(new_shape)[index[0]:index[2],index[1]:index[3]]
         else:
-            print "cross_entropy::Masked, no window"
+            print("cross_entropy::Masked, no window")
             return -T.mean( (T.log(self.class_probabilities )*Target + T.log(1.0 - self.class_probabilities)*(1.0-Target))*T.concatenate( (Mask,Mask,Mask),axis=1 ) )# #.reshape(new_shape)[index[0]:index[2],index[1]:index[3]]#assuming RBG input
-
 
 
     def cross_entropy_array(self, Target, Mask = None):#, index, new_shape):
@@ -331,7 +309,6 @@ class PerceptronLayer(object):
             return -T.mean( (T.log(self.class_probabilities )*Target + T.log(1.0 - self.class_probabilities)*(1.0-Target)) ,axis=1)
         else:
             return -T.mean( (T.log(self.class_probabilities )*Target + T.log(1.0 - self.class_probabilities)*(1.0-Target) )*T.concatenate( (Mask,Mask,Mask),axis=1 ),axis=1)#assuming RBG input
-
 
 
     def errors(self, y):
@@ -355,7 +332,6 @@ class PerceptronLayer(object):
             raise NotImplementedError()
 
 
-
     def CompileAutoencoderTrainingFunction(self, cnn_symbolic_input_x, cnn_symbolic_SGD_LR , b_use_cross_entropy_err=True, mode="sgd"):
         """
             using no momentum
@@ -369,12 +345,12 @@ class PerceptronLayer(object):
             xin = xin.input_layer
             layerz += 1
 
-        print "CompileAutoencoderTrainingFunction... ChainLength =",layerz
+        print("CompileAutoencoderTrainingFunction... ChainLength =",layerz)
 
         TARGET = T.fmatrix('x_raw_input')
 
         if b_use_cross_entropy_err==False:
-            print "Using squared error (not using cross_entropy): training on output (e.g. sigmoid!) directly instead of softmax"
+            print("Using squared error (not using cross_entropy): training on output (e.g. sigmoid!) directly instead of softmax")
             cost = self.squared_distance(TARGET)
         else:
             cost = self.cross_entropy(TARGET)
@@ -398,7 +374,7 @@ class PerceptronLayer(object):
 
         self.SGD_updates=[]
         for param_i, grad_i, last_grad_i, pLR_i in zip(all_params, self.output_layer_Gradients, self.last_grads, self.RPROP_LRs ):
-            print "warning: not sgd"
+            print("warning: not sgd")
             
             if mode=="sgd":
                 self.SGD_updates.append((param_i, param_i  - cnn_symbolic_SGD_LR *  grad_i ))#last_grad_i )) # use if Global_use_unique_LR==1 (1-self.SGD_weight_decay)*param_i
@@ -413,5 +389,3 @@ class PerceptronLayer(object):
         self.show_reconstruction = theano.function([cnn_symbolic_input_x], self.output if b_use_cross_entropy_err==False else self.class_probabilities) #input: holed or normal....
         
         return self.train_model_regression, self.show_reconstruction
-
-

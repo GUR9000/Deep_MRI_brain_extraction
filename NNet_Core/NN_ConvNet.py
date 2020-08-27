@@ -68,8 +68,7 @@ ConvPoolLayer::init().
 
 
 """
-
-
+from __future__ import print_function
 
 import cPickle
 import time
@@ -154,13 +153,12 @@ class MixedConvNN():
         if bSupportVariableBatchsize==True:
             batchsize = None
             self.batchsize = None
-            #print "bSupportVariableBatchsize is in EXPERIMENTAL stage!"
 
         else:
             self.batchsize = batchsize
         if not isinstance(InputImageDimensions, list) and not isinstance(InputImageDimensions, tuple):
             if InputImageDimensions is None:
-                print "assuming input dimension==1 (if wrong: specify <InputImageDimensions> or set <input_image_size> as a tuple)"
+                print("assuming input dimension==1 (if wrong: specify <InputImageDimensions> or set <input_image_size> as a tuple)")
                 InputImageDimensions=1
             input_image_size = (int(input_image_size),)*InputImageDimensions
 
@@ -249,7 +247,7 @@ class MixedConvNN():
                 try:
                     lay.randomize_weights(scale_w = scale_w)
                 except:
-                    print 'randomize_weights() failed in',lay
+                    print('randomize_weights() failed in',lay)
 
         if b_reset_momenta:
             for para,rp,lg in zip(self.params, self.RPROP_LRs, self.last_grads):
@@ -293,7 +291,7 @@ class MixedConvNN():
         assert ndim in [2,3],"only 2d and 3d convolution supported!"
 
 
-        if isinstance(filter_size, (int, long, float, complex)):
+        if isinstance(filter_size, (int, float, complex)):
             filter_size = (filter_size,)*ndim
 
         self.output_stride = self.output_stride * np.asarray(pooling_factor)
@@ -315,7 +313,7 @@ class MixedConvNN():
                 n_pos = ((layer_input_shape[1]+1-filter_size[0])*(layer_input_shape[3]+1-filter_size[1])*(layer_input_shape[4]+1-filter_size[2]))
             num_multiplications = np.product(filter_size) * n_pos * nof_filters * layer_input_shape[1 if ndim==2 else 2] * layer_input_shape[0]
 
-            #print "Cost for passing to the next layer: 10^(",np.log(num_multiplications)/np.log(10),")    =",num_multiplications
+            #print("Cost for passing to the next layer: 10^(",np.log(num_multiplications)/np.log(10),")    =",num_multiplications
             self.TotalForwardPassCost += num_multiplications
 
         if share_params_with_this_layer!=None:
@@ -391,7 +389,7 @@ class MixedConvNN():
         elif len(layer_input_shape) == 2:
             nin = layer_input_shape
         else:
-            print "ERROR! "*100
+            print("ERROR! "*100)
 
         #cost including batch size
         if self.batchsize != None:
@@ -400,7 +398,7 @@ class MixedConvNN():
             else:
                 num_multiplications =  np.prod(n_outputs[1:]) * np.product(nin)
             if self.verbose:
-                print "Cost for passing to the next layer: 10^(",np.log(num_multiplications)/np.log(10),")    =",num_multiplications
+                print("Cost for passing to the next layer: 10^(",np.log(num_multiplications)/np.log(10),")    =",num_multiplications)
             self.TotalForwardPassCost += num_multiplications
 
         if bInputNoise:
@@ -454,21 +452,21 @@ class MixedConvNN():
 
         """
         if len(self.output_layers)!=0:
-            print "WARNING! This function only applies to the LAST layer (and ignores elements of self.output_layers)"
+            print("WARNING! This function only applies to the LAST layer (and ignores elements of self.output_layers)")
 
         self.b_isRegression=b_isRegression
 
         if margin_reweighted_error:
-            print "margin_reweighted_error = True: this is currently only supported for Conv_3D. Be aware of this, in case of failure."# but it is easy to add it to the other layers too
+            print("margin_reweighted_error = True: this is currently only supported for Conv_3D. Be aware of this, in case of failure.")# but it is easy to add it to the other layers too
 
         if b_isRegression:
-            print "CompileOutputFunctions::isRegression = True"
+            print("CompileOutputFunctions::isRegression = True")
             self.y = T.TensorType('float32',(False,)*ndim_regression,name='y_cnn_regression_targets')('y_cnn_regression_targets')
 
 
 
         if self.batchsize != None:
-            print "TotalForwardPassCost = 10^(",np.log(self.TotalForwardPassCost)/np.log(10),") =",self.TotalForwardPassCost
+            print("TotalForwardPassCost = 10^(",np.log(self.TotalForwardPassCost)/np.log(10),") =",self.TotalForwardPassCost)
         layer_last = self.layers[-1]
 
         if override_training_loss_function is None and override_training_loss is None:
@@ -484,18 +482,18 @@ class MixedConvNN():
             if self.b_isRegression==False and ignore_points_labeled_as_zero:
                 assert bUseModulatedNLL==0
                 assert margin_reweighted_error==0
-                print "CompileOutputFunctions::ignore_points_labeled_as_zero==True"
-                print "NLL will not count points that have label 0. Needs an additional place-holder class 0, that will never actually be predicted."
+                print("CompileOutputFunctions::ignore_points_labeled_as_zero==True")
+                print("NLL will not count points that have label 0. Needs an additional place-holder class 0, that will never actually be predicted.")
                 self.output_layer_Loss = layer_last.negative_log_likelihood_ignore_zero(self.y)
             if bUseModulatedNLL:
-                print "CompileOutputFunctions::UseModulatedNLL = True"
+                print("CompileOutputFunctions::UseModulatedNLL = True")
                 if b_isRegression:
                     for i in range(5):
-                        print "NN::CompileOutputFunctions:: WARNING: b_isRegression and bUseModulatedNLL are incompatible! NLL=0, no training."
+                        print("NN::CompileOutputFunctions:: WARNING: b_isRegression and bUseModulatedNLL are incompatible! NLL=0, no training.")
                     self.output_layer_Loss = 0
                     self.z = T.TensorType('float32',(False,)*ndim_regression,name='z_cnn_nll_modulation')('z_cnn_nll_modulation')#T.fvector('z_cnn_nll_modulation')
                 else:
-                    print "NN:: using modulated NLL. Modulation(np.float32_vector) should be 0 for to-be-ignored examples and (closer to) 1 otherwise."
+                    print("NN:: using modulated NLL. Modulation(np.float32_vector) should be 0 for to-be-ignored examples and (closer to) 1 otherwise.")
                     self.z = T.fvector('z_cnn_nll_modulation')
                     if margin_reweighted_error:
                         self.output_layer_Loss = layer_last.negative_log_likelihood_modulated_margin(self.y, modulation = self.z)#margin=0.7, penalty_multiplier = 0.2
@@ -503,16 +501,14 @@ class MixedConvNN():
                         self.output_layer_Loss = layer_last.negative_log_likelihood_modulated(self.y, self.z)
 
         elif override_training_loss_function is not None:
-            print "using custom loss function..."
+            print("using custom loss function...")
             self.output_layer_Loss = override_training_loss_function(self.y)
 
         elif override_training_loss is not None:
-            print "using custom loss..."
+            print("using custom loss...")
             self.output_layer_Loss = override_training_loss
 
         self.bUseModulatedNLL = bUseModulatedNLL
-
-
 
 
         if compile_test_model_function:
@@ -529,27 +525,19 @@ class MixedConvNN():
             try:
                 self.params.append(lay.params[1])
             except:
-                print "Warning: layer.params[1] is empty."
-
+                print("Warning: layer.params[1] is empty.")
 
         # in case one uses more than the params W and b
         for lay in self.layers:
             if len(lay.params)>2:
                 self.params.append(lay.params[2:])
 
-
         return 0
-
-
-
 
 
     def enable_gradient_clipping(self, f_clip_at = 5e-3):
         self._GradientClipping = True
         self._GradientClipping_limit = f_clip_at
-
-
-
 
 
     def CompileTrainingFunctions(self, RPROP_penalty=0.35, RPORP_gain=0.2, SGD_LR_=5e-5,
@@ -564,47 +552,42 @@ class MixedConvNN():
 
             """
         
-        print "Called: CompileTrainingFunctions. You don't have to call this function, you may use .training_step() directly!"
+        print("Called: CompileTrainingFunctions. You don't have to call this function, you may use .training_step() directly!")
         if len(self.params)==0:
-            print "call CompileOutputFunctions() before calling CompileTrainingFunctions()!"
+            print("call CompileOutputFunctions() before calling CompileTrainingFunctions()!")
             return -1
 
         # create a list of gradients for all model parameters
-
         if b_external_top_error==False:
             if b_use_clipped_gradients==False:
                 output_layer_Gradients = T.grad( self.output_layer_Loss, self.params, disconnected_inputs="warn")
 
-
             else:
-                print "\nBE WARNED: Feature activated: use_clipped_gradients (f_clip_at =",f_clip_at,")"
+                print("\nBE WARNED: Feature activated: use_clipped_gradients (f_clip_at =",f_clip_at,")")
                 output_layer_Gradients_tmp = T.jacobian( self.layers[-1].negative_log_likelihood_array(self.y), self.params, disconnected_inputs="warn")
                 #each element has shape: (batchsize, rest...)
                 output_layer_Gradients = [T.mean(T.clip(x,-np.float32(np.abs(f_clip_at)),np.float32(np.abs(f_clip_at))),axis=0) for x in output_layer_Gradients_tmp]
 
         else:
             self.known_top_err = T.TensorType('float32',(False,)*5,name='known_top_err')('known_top_err')
-            print "predictions are last_layer.output, which is (hopefully) sigmoid!"
-            print "top error is specified externally: <self.known_top_err> (batchsize,x,n_classes,y,z)"
+            print("predictions are last_layer.output, which is (hopefully) sigmoid!")
+            print("top error is specified externally: <self.known_top_err> (batchsize,x,n_classes,y,z)")
             output_layer_Gradients = theano.gradient.grad( T.sum(self.layers[-1].output*self.known_top_err) , self.params ,disconnected_inputs="warn")#.subgraph_grad()
-
 
         if b_Override_only_SGD==False:
             self.RPROP_LRs=[] # one for each parameter -> many
         self.last_grads=[]
         self.gprop_grad_variance=[]
 
-
-
         for i,para in enumerate(self.params):
             if para in self.params[:i]:
-                print "Detected RNN or shared param @index =",i
+                print("Detected RNN or shared param @index =",i)
                 continue
             if b_Override_only_SGD==False:
-#                print "warning: was 4e-5"
+#                print("warning: was 4e-5"
                 self.RPROP_LRs.append(theano.shared(  1e-4*np.ones(para.get_value().shape,dtype=theano.config.floatX) , name=para.name+str('_RPORP') , borrow=0))
                 self.gprop_grad_variance.append(theano.shared( 1e-2*np.ones(para.get_value().shape,dtype=theano.config.floatX) , name=para.name+str('_GPROP') , borrow=0))
-#            print "WARNING change this if you want to use sgd/rmsprop"
+#            print("WARNING change this if you want to use sgd/rmsprop"
             self.last_grads.append(theano.shared( np.zeros(para.get_value().shape,dtype=theano.config.floatX) , name=para.name+str('_LG') , borrow=0))
             #self.SGD_EigHessian_perturbed_grads.append(theano.shared(  zeros(para.get_value().shape,dtype=theano.config.floatX) , name=para.name+str('_pLG') , borrow=True))
 
@@ -613,9 +596,6 @@ class MixedConvNN():
             low = (i*2)%n
             lay.last_grads = self.last_grads[low:low+2]
 
-
-
-
         SGD_updatesa=[]
         SGD_updatesb=[]
 
@@ -623,43 +603,36 @@ class MixedConvNN():
             RPROP_updates = []
         RMSPROP_updates = []
 
-
-
         self.SGD_global_LR.set_value(np.float32(SGD_LR_))
         if bWeightDecay:
-            print "CNN::using Weight decay! Change via this.SGD_global_weightdecay.set_value()"
+            print("CNN::using Weight decay! Change via this.SGD_global_weightdecay.set_value()")
             self.SGD_global_weightdecay = theano.shared(np.asarray(0.0005).astype("float32"))
         self.SGD_momentum.set_value(np.float32(SGD_momentum_))
-
 
         if b_Override_only_SGD==False:
             assert len(self.params)==len(self.last_grads),"rnn/shared params not yet implemented in rprop/gprop"
 
-
-#            print "Trading memory usage for more speed (SGD_updates_a), change it if it gets too big (removes momentum, too)."
             for param_i, grad_i, last_grad_i, pLR_i, gprop_var_i in zip(self.params, output_layer_Gradients, self.last_grads, self.RPROP_LRs, self.gprop_grad_variance):
                 # capping RPROP-LR inside [1e-7,1e-2]
-                print "RPROP: missing backtracking handling "
+                print("RPROP: missing backtracking handling ")
                 RPROP_updates.append((pLR_i, T.minimum( T.maximum( pLR_i * ( 1 - np.float32(RPROP_penalty)* ((last_grad_i*grad_i) < -1e-9) + np.float32(RPORP_gain)* ((last_grad_i*grad_i) > 1e-11)   ) , 1e-7*T.ones_like(pLR_i) ),2e-3 * T.ones_like(pLR_i)) ))
                 RPROP_updates.append((param_i, param_i  - pLR_i * grad_i/(T.abs_(grad_i) + 1e-6) - (0 if bWeightDecay==False else self.SGD_global_weightdecay*param_i) ))
 
                 RPROP_updates.append((last_grad_i, grad_i ))#RPROP_updates.append((last_grad_i, (grad_i + 0.5*last_grad_i)/1.5)) #trailing exp-mean over last gradients: smoothing. check if useful...
 
-
         if b_layerwise_LR:
-            print "Using layerwise LR multiplier. Speed penalty ~ 10%. Access it via this.SGD_local_LRs (default is 1. == no modification of the global LR)."
+            print("Using layerwise LR multiplier. Speed penalty ~ 10%. Access it via this.SGD_local_LRs (default is 1. == no modification of the global LR).")
             self.SGD_local_LRs = [theano.shared(np.float32(1.)) for x in self.params] #one LR modifier per param group
         else:
             self.SGD_local_LRs = [1. for x in self.params]
 
-
         for param_i, grad_i, last_grad_i, local_lr_modifier in zip(self.params, output_layer_Gradients, self.last_grads, self.SGD_local_LRs):
             if len(self.params)>len(self.last_grads):
                 grad_i = None
-                print "grad_param::",param_i
+                print("grad_param::",param_i)
                 for i in range(len(self.params)):
                     if param_i == self.params[i]:
-                        print ">>",i
+                        print(">>",i)
                         grad_i = output_layer_Gradients[i] if grad_i==None else grad_i + output_layer_Gradients[i]
 
             SGD_updatesa.append((last_grad_i, grad_i             + last_grad_i * self.SGD_momentum))#use this if you want to use the gradient magnitude
@@ -672,14 +645,12 @@ class MixedConvNN():
 
             RMSPROP_updates.append((last_grad_i, 0.95*last_grad_i + 0.05* (grad_i)**2  ))
             RMSPROP_updates.append((param_i, param_i - self.SGD_global_LR * grad_i/(  T.sqrt(last_grad_i+0.000001) ) ))
-        print "RMSPROP: advice: a good LR is 2e-4  (value for <self.SGD_global_LR>)"
-
-
+        print("RMSPROP: advice: a good LR is 2e-4  (value for <self.SGD_global_LR>)")
 
         if bHighActivationPenalty:
             self.HighActivationPenalty_coeff = theano.shared(np.float32(1e-4))
-            print "Applying high-activation-penalty..."
-            print "todo: test..."
+            print("Applying high-activation-penalty...")
+            print("todo: test...")
             for lay in self.layers:
                 type_ = lay.ActivationFunction
                 ok=1
@@ -689,16 +660,14 @@ class MixedConvNN():
                 elif type_=="sigmoid":
                     grads = T.grad( 2*T.mean((lay.output-0.5)**2), lay.params)
                 elif type_=="relu":
-                    print "relu...todo:test"
+                    print("relu...todo:test")
                     grads = T.grad( -T.mean((lay.output)**2), lay.params)
                 else:
-                    print "UNSUPPORTED ActivationFunction!"
+                    print("UNSUPPORTED ActivationFunction!")
                     ok=0
 
                 if ok:
-
                     for param_i,grad_i in zip(lay.params,grads):
-
                         for i,u in enumerate(SGD_updatesb):
                             if u[0]==param_i:
                                 SGD_updatesb[i] = (param_i,u[1] - (self.SGD_global_LR * self.HighActivationPenalty_coeff) * grad_i)
@@ -713,27 +682,24 @@ class MixedConvNN():
                                     RPROP_updates[i] = (param_i,u[1] - (self.SGD_global_LR * self.HighActivationPenalty_coeff) * grad_i)
                                     break
                         except:
-                            print "only sgd..."
-
+                            print("only sgd...")
 
         addthis = [self.z,] if self.bUseModulatedNLL else []
-
         if b_external_top_error:
             addthis = addthis + [self.known_top_err]
 
         if bOverride_OnlyRPORP or (b_Override_only_SGD==False and bOverride_OnlyGPROP==False and b_Override_only_RMSPROP==0):
-            print "compiling RPROP..."
+            print("compiling RPROP...")
             self.train_model_RPROP = theano.function([self.x] + ([] if b_external_top_error else [self.y])+addthis, None if b_external_top_error else self.output_layer_Loss, updates=RPROP_updates,  on_unused_input='warn')
 
         if b_Override_only_SGD==False and bOverride_OnlyGPROP==False and bOverride_OnlyRPORP==False:
-            print "compiling RMSPROP..."
+            print("compiling RMSPROP...")
             self.train_model_RMSPROP = theano.function([self.x] + ([] if b_external_top_error else [self.y])+addthis, None if b_external_top_error else self.output_layer_Loss, updates=RMSPROP_updates,  on_unused_input='warn')
 
         if bOverride_OnlyGPROP==0 and b_Override_only_RMSPROP==0 and bOverride_OnlyRPORP==False:
-            print "compiling SGD..."
+            print("compiling SGD...")
             # a only updates last_grads, it DOES NOT change any parameters
             #you could call it 10 times and would get the same nll every time... but if momentum is != 0 then this changes the search direction
-
             assert len(SGD_updatesa)==len(SGD_updatesb),str(len(SGD_updatesa))+" != "+str(len(SGD_updatesb))
 
             self.train_model_SGD_a     = theano.function([self.x] + ([] if b_external_top_error else [self.y])+addthis, None if b_external_top_error else self.output_layer_Loss, updates=SGD_updatesa,  on_unused_input='warn')#the output is the value you get BEFORE updates....
@@ -741,25 +707,15 @@ class MixedConvNN():
             try:
                 self.train_model_SGD_a_ext = theano.function([self.x,self.y]+addthis, [self.output_layer_Loss, self.layers[-1].class_probabilities_realshape], updates=SGD_updatesa,  on_unused_input='warn')
             except:
-                print "NNet.train_model_SGD_a_ext unavailable"
+                print("NNet.train_model_SGD_a_ext unavailable")
             # b ONLY changes the parameters
             self.train_model_SGD_b     = theano.function([], None, updates=SGD_updatesb)
-
         return 0
-
-
 
 
     def get_NLL(self,x,y):
         self.get_NLL = theano.function([self.x,self.y], self.output_layer_Loss, on_unused_input='warn')
         return self.get_NLL(x,y)
-
-
-
-
-
-
-
 
 
     def training_step(self, data, labels, mode=1, useSGD=None, modulation=None, b_extended_output = False):
@@ -847,23 +803,22 @@ class MixedConvNN():
             nll=self.train_model_ADADELTA(data,labels)
 
         else:
-            print "INVALID mode!"
+            print("INVALID mode!")
             nll=1e42
 
         return nll
 
 
-
     def set_SGD_LR(self,value=7e-4):
         self.SGD_global_LR.set_value(np.float32(value),borrow=False)
+
 
     def get_SGD_LR(self):
         return self.SGD_global_LR.get_value()
 
+
     def set_SGD_Momentum(self,value=0.9):
         self.SGD_momentum.set_value(np.float32(value),borrow=False)
-
-
 
     #---------------------------------------------------------------------------------------------------
     #---------------------------------------save / load-------------------------------------------------
@@ -873,20 +828,20 @@ class MixedConvNN():
         """ alias to self.SaveParameters"""
         return self.SaveParameters(myfile=myfile, layers_to_save = layers_to_save, protocol=protocol)
 
+
     def load(self,myfile="CNN.save", n_layers_to_load=-1):
         """ alias to self._LoadParametersAdaptive"""
         return self._LoadParametersAdaptive(myfile,n_layers_to_load=n_layers_to_load)
+
 
     def LoadParameters(self,myfile="CNN.save", n_layers_to_load=-1):
         return self.LoadParametersStrict(myfile,n_layers_to_load=n_layers_to_load)
 
 
-
-
     #function lacks error-handling
     def LoadParametersStrict(self,myfile="CNN.save", n_layers_to_load = -1):
         """load a parameter set which IS fully compatible to the current network configuration (FAILS otherwise)."""
-        #print "Loading from",myfile
+        #print("Loading from",myfile
         f = open(myfile, 'rb')
         assert n_layers_to_load==-1,'not implemented'
         nn_params = []
@@ -905,8 +860,6 @@ class MixedConvNN():
                 break
         
         file_params = [x for x in file_params if np.prod(np.shape(x))>6]
-        #print map(np.shape, file_params)
-        #print [x.get_value().shape for x in nn_params]
 
         for nn_p, p in zip(nn_params, file_params):
             nn_p.set_value(p,borrow=False)
@@ -915,14 +868,9 @@ class MixedConvNN():
         return 0
 
 
-
-
-
-
     def SaveParameters(self, myfile="CNN.save", layers_to_save = None, protocol=1):
         """ default: layers_to_save = None will save all self.layers"""
-        print "saving to",myfile
-#        print "TODO: this save-code sucks! (NN_ConvNet, line 1714)"
+        print("saving to",myfile)
         mkdir(extract_filename(myfile)[0])
         f = open(myfile, 'wb')
 
@@ -948,19 +896,3 @@ class MixedConvNN():
 #---------------------------------------------------------------------------------------------
 #-------------------------------------end class MixedConvNN-----------------------------------------------
 #---------------------------------------------------------------------------------------------
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

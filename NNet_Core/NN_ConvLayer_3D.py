@@ -27,6 +27,7 @@ THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABI
 TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 """
+from __future__ import print_function
 
 import numpy as np
 import numpy
@@ -34,7 +35,7 @@ import numpy
 
 import theano
 import theano.tensor as T
-
+import time
 import TransferFunctions as transfer
 
 
@@ -48,14 +49,13 @@ if 1:
         from theano.tensor.nnet.conv3d2d import conv3d
 
 
-
 from maxPool3D import my_max_pool_3d
 
 
 def max_pool_along_channel_axis(sym_input, pool_factor):
     """ for 3D conv."""
     s = None
-    for i in xrange(pool_factor):
+    for i in range(pool_factor):
         t = sym_input[:,:,i::pool_factor]
         if s is None:
             s = t
@@ -72,11 +72,6 @@ def max_pool_along_channel_axis(sym_input, pool_factor):
 #       filters: (32, 5 , 3,  5 , 5)
 #    --> output: (1, 66, 32, 66, 66)
 
-import time
-
-
-
-
 
 def offset_map(output_stride):
     for x in np.log2(output_stride):
@@ -86,9 +81,9 @@ def offset_map(output_stride):
     else:
         prev = offset_map(output_stride/2)
         current = []
-        for i in xrange(2):
-            for j in xrange(2):
-                for k in xrange(2):
+        for i in range(2):
+            for j in range(2):
+                for k in range(2):
                     for p in prev:
                         new = p.copy()
                         new[0] += i*2
@@ -96,7 +91,6 @@ def offset_map(output_stride):
                         new[2] += k*2
                         current.append(new)
         return np.array(current)
-
 
 
 class ConvPoolLayer3D(object):
@@ -134,7 +128,6 @@ class ConvPoolLayer3D(object):
         """
         assert len(filter_shape)==5
 
-
         if b_deconvolution:
             raise NotImplementedError()
 
@@ -156,7 +149,6 @@ class ConvPoolLayer3D(object):
         self.input_layer = input_layer
         self.output_stride = output_stride
 
-
         if prod_pool>1 and use_fragment_pooling:
             assert prod_pool==8,"currently only 2^3 pooling"
 
@@ -168,10 +160,10 @@ class ConvPoolLayer3D(object):
         W_bound = numpy.sqrt(3. / (fan_in + fan_out))#W_bound = 0.035#/(np.sqrt(fan_in/1400))##was 0.02 which was fine. #numpy.sqrt(0.04 / (fan_in + fan_out)) #6.0 / numpy.prod(filter_shape[1:]) #
 
         if verbose:
-            print "ConvPoolLayer3D"+("(FFT_based)" if b_use_FFT_convolution else "")+":"
-            print "   input (image) =",input_shape
-            print "   filter        =",filter_shape," @ std =",W_bound
-            print "   poolsize",poolsize
+            print("ConvPoolLayer3D"+("(FFT_based)" if b_use_FFT_convolution else "")+":")
+            print("   input (image) =",input_shape)
+            print("   filter        =",filter_shape," @ std =",W_bound)
+            print("   poolsize",poolsize)
         
         if W==None:
             self.W = theano.shared(
@@ -194,14 +186,9 @@ class ConvPoolLayer3D(object):
         else:
             self.b = b
 
-
-
-
         if b_use_FFT_convolution:
 
-
             self.mode = theano.compile.get_default_mode().including('conv3d_fft', 'convgrad3d_fft', 'convtransp3d_fft')
-
 
             filters_flip = self.W[:,::-1,:,::-1,::-1]  # flip x, y, z
             conv_res = T.nnet.conv3D(
@@ -210,16 +197,12 @@ class ConvPoolLayer3D(object):
             	b=self.b,
             	d=(1,1,1))
             self.conv_out = conv_res.dimshuffle(0,3,4,1,2)  # (batchsize, time, channels, height, width)
-
         else:
             self.mode = theano.compile.get_default_mode()
             self.conv_out = conv3d(signals=input, filters=self.W, border_mode = 'full' if bUpsizingLayer else 'valid',
                 filters_shape=filter_shape, signals_shape = input_shape if input_shape[0]!=None else None
                 )
-
         if np.any(poolsize>1):
-            #print "   use_fragment_pooling =",use_fragment_pooling
-
             if use_fragment_pooling:
                 assert np.all(poolsize==2), "Fragment Pooling (currently) allows only a Poolingfactor of 2! GIVEN: "+str(poolsize)
                 pooled_out = self.fragmentpool(self.conv_out)
@@ -229,11 +212,10 @@ class ConvPoolLayer3D(object):
         else:
             pooled_out = self.conv_out
 
-
         if bDropoutEnabled_:
-            print "   dropout: on"
+            print("   dropout: on")
             if b_use_FFT_convolution:
-                print "   !!! WARNING: b was already added, this might mess things up!\n"*2
+                print("   !!! WARNING: b was already added, this might mess things up!\n"*2)
                 raise NotImplementedError("BAD: FFT & Dropout")
 
 
@@ -256,7 +238,7 @@ class ConvPoolLayer3D(object):
             if input_shape[0]==None:
                 output_shape[0] = input_shape[0]
             output_shape=tuple(output_shape)
-            print '   dense_output_from_fragments:: (lin_output) reshaped into dense volume...' #class_probabilities, output too...
+            print('   dense_output_from_fragments:: (lin_output) reshaped into dense volume...') #class_probabilities, output too...
             lin_output = self.combine_fragments_to_dense_bxcyz(lin_output, output_shape)  #(batch, x, channels, y, z)
 
         self.lin_output = lin_output
@@ -274,11 +256,9 @@ class ConvPoolLayer3D(object):
             output_shape[0] = input_shape[0]
         output_shape=tuple(output_shape)
         if verbose:
-            print "   output        =",output_shape, "Dropout",("enabled" if bDropoutEnabled_ else "disabled")
-            print "   ActivationFunction =",self.ActivationFunction
+            print("   output        =",output_shape, "Dropout",("enabled" if bDropoutEnabled_ else "disabled"))
+            print("   ActivationFunction =",self.ActivationFunction)
         self.output_shape = output_shape
-
-
 
         #lin_output:
         # bxcyz
@@ -300,8 +280,6 @@ class ConvPoolLayer3D(object):
         return
 
 
-
-
     def fragmentpool(self, conv_out):
       p000 = my_max_pool_3d(conv_out[:,:-1,:,:-1,:-1], pool_shape=(2,2,2))
       p001 = my_max_pool_3d(conv_out[:,:-1,:,:-1, 1:], pool_shape=(2,2,2))
@@ -313,7 +291,6 @@ class ConvPoolLayer3D(object):
       p111 = my_max_pool_3d(conv_out[:, 1:,:, 1:, 1:], pool_shape=(2,2,2))
       result = T.concatenate((p000, p001, p010, p011, p100, p101, p110, p111), axis=0)
       return result
-
 
 
     def combine_fragments_to_dense_bxcyz(self, tensor, sh):
@@ -329,16 +306,14 @@ class ConvPoolLayer3D(object):
       zero = np.array((0), dtype=theano.config.floatX)
       embedding = T.alloc( zero, 1, sh[1]*output_stride[0], sh[2], sh[3]*output_stride[1], sh[4]*output_stride[2]) # first arg. is fill-value (0 in this case) and not an element of the shape
       ix = offset_map(output_stride)
-      print "      output_stride",output_stride
-      print "      example_stride",example_stride
+      print("      output_stride",output_stride)
+      print("      example_stride",example_stride)
       for i,(n,m,k) in enumerate(ix):
           embedding = T.set_subtensor(embedding[:,n::output_stride[0],:,m::output_stride[1],k::output_stride[2]], ttensor[i::example_stride])
       return embedding
 
 
-
     def randomize_weights(self, scale_w = 3.0):
-
         fan_in = 1.0*numpy.prod(self.filter_shape[1:])
         # each unit in the lower layer receives a gradient from:
         # "num output feature maps * filter height * filter width * filter depth" / pooling size**3
@@ -348,7 +323,6 @@ class ConvPoolLayer3D(object):
 
         self.W.set_value(numpy.asarray(numpy.random.normal(0, W_bound, self.filter_shape), dtype=theano.config.floatX))
         self.b.set_value(numpy.asarray(numpy.zeros((self.filter_shape[0],), dtype=theano.config.floatX)))
-
 
 
     def negative_log_likelihood(self, y):
@@ -374,7 +348,6 @@ class ConvPoolLayer3D(object):
         return -T.mean(T.sum(T.log(self.class_probabilities)*y,axis=1)) #shape of class_probabilities is e.g. (14*14,2) for 2 classes and 14**2 labels
 
 
-
     def negative_log_likelihood_ignore_zero(self, y):
         """--Return the mean of the negative log-likelihood of the prediction
         of this model under a given target distribution.
@@ -385,10 +358,7 @@ class ConvPoolLayer3D(object):
         --Note: we use the mean instead of the sum so that
               the learning rate is less dependent on the batch size
         """
-
-
         return -T.mean((theano.tensor.neq(y,0))*T.log(self.class_probabilities)[T.arange(y.shape[0]),y]) #shape of class_probabilities is e.g. (14*14,2) for 2 classes and 14**2 labels
-
 
 
     def negative_log_likelihood_modulated(self, y, modulation):
@@ -403,16 +373,13 @@ class ConvPoolLayer3D(object):
         return -T.mean(modulation*T.log(self.class_probabilities)[T.arange(y.shape[0]),y])
 
 
-
-
     def negative_log_likelihood_modulated_margin(self, y, modulation=1, margin=0.7, penalty_multiplier = 0):
-        print "negative_log_likelihood_modulated_margin:: Penalty down to ",100.*penalty_multiplier,"% if prediction is close to the target! Threshold is",margin
+        print("negative_log_likelihood_modulated_margin:: Penalty down to ",100.*penalty_multiplier,"% if prediction is close to the target! Threshold is",margin)
         penalty_multiplier = np.float32(penalty_multiplier)
         margin = np.float32(margin)
         selected = self.class_probabilities[T.arange(y.shape[0]),y]
         r = modulation*T.log(selected)
         return -T.mean(r*(selected<margin) + (0 if penalty_multiplier==0 else penalty_multiplier*r*(selected>=margin))  )
-
 
 
     def squared_distance(self, Target,b_flatten=False):
@@ -428,7 +395,7 @@ class ConvPoolLayer3D(object):
     def squared_distance_w_margin(self, TARGET, margin=0.3):
         """  output: scalar float32
         """
-        print "Conv3D::squared_distance_w_margin (binary predictions)."
+        print("Conv3D::squared_distance_w_margin (binary predictions).")
         margin = np.float32(margin)
         out = self.output
         NULLz  = T.zeros_like(out)
@@ -442,7 +409,7 @@ class ConvPoolLayer3D(object):
         """Target is the TARGET image (vectorized), -> shape(x) = (batchsize, imgsize**2)
             output: scalar float32
         """
-        #print np.shape( theano.function([self.input], self.colorchannel_probabilities)(np.random.random( self.input_shape ).astype(np.float32)) )
+        #print(np.shape( theano.function([self.input], self.colorchannel_probabilities)(np.random.random( self.input_shape ).astype(np.float32)) )
         return -T.mean( T.log(self.class_probabilities)*Target + T.log(1-self.class_probabilities)*(1-Target) )# #.reshape(new_shape)[index[0]:index[2],index[1]:index[3]]
 
 
@@ -474,11 +441,6 @@ class ConvPoolLayer3D(object):
             # represents a mistake in prediction
             return T.mean(T.neq(self.class_prediction, y))
         else:
-            print "something went wrong"
+            print("something went wrong")
             raise NotImplementedError()
-
-
-
-
-
 

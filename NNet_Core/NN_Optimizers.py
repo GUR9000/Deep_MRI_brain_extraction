@@ -28,7 +28,7 @@ THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABI
 TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 """
-
+from __future__ import print_function
 
 # Contains all optimizers like SGD/CG/RPROP/...
 
@@ -95,37 +95,22 @@ class OptimizerCore(object):
     self.params = params
     self.gradients = T.grad(loss, params, disconnected_inputs="warn")
     
-#    if hasattr(base_object, 'last_grads') and base_object.last_grads!=[] and  base_object.last_grads!=None:
-#      self.last_grads = base_object.last_grads
-#    else:
-#    self.last_grads = []
-#    for i, p in enumerate(self.params):
-#        if p in self.params[:i]:
-#            print "Detected shared param: param[%i]" %i
-#        else:
-#        self.last_grads.append(theano.shared(np.zeros(p.get_value().shape, dtype=theano.config.floatX),name=p.name+str('_LG'), borrow=0))
-
-
     if base_object is not None:
         # avoid multiple/redundant compilations
         #but this is a HORRIBLY BAD IDEA if the same model is optimized with different loss functions!
         if use_shared_getter_functions:
             if hasattr(base_object, 'get_loss'):
-                print "OptimizerCore:: using shared get_loss() function"
+                print("OptimizerCore:: using shared get_loss() function")
                 self.get_loss = base_object.get_loss
             else:
                 base_object.get_loss = self.get_loss
                 
             if hasattr(base_object, 'get_grads'):
-                print "OptimizerCore:: using shared get_grads() function"
+                print("OptimizerCore:: using shared get_grads() function")
                 self.get_grads = base_object.get_grads
             else:
                 base_object.get_grads = self.get_grads
         
-#            base_object.last_grads = self.last_grads # share last grads in model
-#            base_object.get_loss    = self.get_loss
-
-
 
   def get_loss(self, *args):
     """
@@ -134,7 +119,7 @@ class OptimizerCore(object):
     input: numpy-arrays: [data, labels, ...] 
     output: loss
     """
-    print "compiling get_loss ..."
+    print("compiling get_loss ...")
     get_loss = theano.function(self.input_arguments, self.loss)
     loss = get_loss(*args)
     self.get_loss = get_loss #overwrite
@@ -148,7 +133,7 @@ class OptimizerCore(object):
     input:
         numpy-arrays: [data, labels, ...] 
     """
-    print "compiling get_grads ..."
+    print("compiling get_grads ...")
     getGradients = theano.function(self.input_arguments, self.gradients, on_unused_input='warn')
     ret = getGradients(*args)
     self.get_grads = getGradients
@@ -224,16 +209,6 @@ class OptimizerCore(object):
 
 
 
-
-
-
-
-
-
-
-
-
-
 #####################################################################################################################
 #######################################       Resilient backPROPagation      ########################################
 #####################################################################################################################
@@ -257,7 +232,7 @@ def CompileRPROP(base_object=None, input_arguments=[], loss = None, params = Non
         
         
         """
-    print "setting up RPROP..."
+    print("setting up RPROP...")
     
     core = OptimizerCore(base_object=base_object, input_arguments=input_arguments, 
                          loss=loss, params=params, use_shared_getter_functions=False)
@@ -266,16 +241,16 @@ def CompileRPROP(base_object=None, input_arguments=[], loss = None, params = Non
     last_grads=[]
     RPROP_updates=[]
     if bWeightDecay:
-        print "CNN::using Weight decay! Change value via this.global_weightdecay_param.set_value()"
+        print("CNN::using Weight decay! Change value via this.global_weightdecay_param.set_value()")
         global_weightdecay_param = theano.shared(np.asarray(0.0005).astype("float32"))
 
     for i,para in enumerate(core.params):
         if para in core.params[:i]:
-            print "Detected RNN or shared param @index =",i
+            print("Detected RNN or shared param @index =",i)
         else:
             RPROP_LRs.append(theano.shared(  np.float32(initial_update_size)*np.ones(para.get_value().shape,dtype=theano.config.floatX) , name=para.name+str('_RPROP') , borrow=0))
             last_grads.append(theano.shared( np.zeros(para.get_value().shape,dtype=theano.config.floatX) , name=para.name+str('_LG') , borrow=0))
-    print "RPROP: missing backtracking handling "
+    print("RPROP: missing backtracking handling ")
     for param_i, grad_i, last_grad_i, pLR_i in zip(core.params, core.gradients, last_grads, RPROP_LRs):
         # capping RPROP-LR inside [1e-7,1e-2]
 
@@ -288,7 +263,7 @@ def CompileRPROP(base_object=None, input_arguments=[], loss = None, params = Non
         # this function will replace itself. It will still work (efficiently) if a pointer to it was saved and is used instead of the new function.
         if hasattr(core,"_train_model_RPROP_compiled"):
             return core._train_model_RPROP_compiled(*args)
-        print "compiling RPROP..."
+        print("compiling RPROP...")
         fun = theano.function(core.input_arguments, core.loss, updates=RPROP_updates,  on_unused_input='warn')
         core.train_model_RPROP = fun
         core._train_model_RPROP_compiled = fun
@@ -297,7 +272,7 @@ def CompileRPROP(base_object=None, input_arguments=[], loss = None, params = Non
     core.train_model_RPROP = train_model_RPROP #theano.function(core.input_arguments, core.loss, updates=RPROP_updates,  on_unused_input='warn')
 
     if modifies_base_object and base_object is not None:
-        print "RPROP...setting base_object's attributes & methods..."
+        print("RPROP...setting base_object's attributes & methods...")
         base_object.train_model_RPROP = core.train_model_RPROP
         if bWeightDecay:
             base_object.global_weightdecay_param = global_weightdecay_param
@@ -305,10 +280,6 @@ def CompileRPROP(base_object=None, input_arguments=[], loss = None, params = Non
         base_object.RPROP_LRs = RPROP_LRs
 
     return core
-
-
-
-
 
 
 #####################################################################################################################
@@ -322,7 +293,7 @@ def CompileADADELTA(base_object=None, INPUT=None, TARGET=None, top_error = None,
     """ default for top_error is <base_object.output_layer_Loss>
         default for    params is <base_object.params>
         """
-    print "compiling ADA-DELTA..."
+    print("compiling ADA-DELTA...")
     assert UpdateLatency>0. and UpdateLatency<1.
     
     if top_error==None:
@@ -340,19 +311,18 @@ def CompileADADELTA(base_object=None, INPUT=None, TARGET=None, top_error = None,
     UpdateLatency = np.float32(UpdateLatency)
     epsilon = np.float32(epsilon)
     scale_factor = np.float32(scale_factor)
-    
-    
+
     ADADELTA_updates=[]
     trailing_sq_grads=[]
     trailing_sq_updates=[]
     
     if bWeightDecay:
-        print "CNN::using Weight decay! Change value via this.global_weightdecay_param.set_value()"
+        print("CNN::using Weight decay! Change value via this.global_weightdecay_param.set_value()")
         global_weightdecay_param = theano.shared(np.asarray(0.0005).astype("float32"))
 
     for i,para in enumerate(params):
         if para in params[:i]:
-            print "Detected RNN or shared param @index =",i,"(skipping duplicate)"
+            print("Detected RNN or shared param @index =",i,"(skipping duplicate)")
         else:
 #            ADADELTA_LRs.append(theano.shared(  np.float32(initial_update_size)*np.ones(para.get_value().shape,dtype=theano.config.floatX) , name=para.name+str('_ADADELTA') , borrow=0))
             trailing_sq_grads.append(theano.shared( np.float32(1e-2)*np.ones(para.get_value().shape,dtype=theano.config.floatX) , name=para.name+str('_sqG') , borrow=0))
@@ -370,18 +340,13 @@ def CompileADADELTA(base_object=None, INPUT=None, TARGET=None, top_error = None,
     train_model_ADADELTA = theano.function([INPUT,TARGET], top_error, updates=ADADELTA_updates,  on_unused_input='warn')
 
     if modifies_base_object and base_object is not None:
-        print "ADADELTA...setting base_object's attributes & methods..."
+        print("ADADELTA...setting base_object's attributes & methods...")
         base_object.train_model_ADADELTA = train_model_ADADELTA
         if bWeightDecay:
             base_object.global_weightdecay_param = global_weightdecay_param
 
-
-    print "compiling ADADELTA...DONE!"
+    print("compiling ADADELTA...DONE!")
     return train_model_ADADELTA
-
-
-
-
 
 
 #####################################################################################################################
@@ -405,7 +370,7 @@ def CompileSGD(base_object, top_loss = None, params = None, input_arguments = No
             SGD_global_LR, SGD_momentum, global_weightdecay_param
         
         """
-    print "NN:opt::compiling SGD..."
+    print("NN:opt::compiling SGD...")
     if top_loss==None:
         top_loss = base_object.output_layer_Loss
     if params==None:
@@ -425,23 +390,19 @@ def CompileSGD(base_object, top_loss = None, params = None, input_arguments = No
         base_object.SGD_global_LR = theano.shared(np.float32(SGD_LR_))
     if not hasattr(base_object,"SGD_momentum"):
         base_object.SGD_momentum = theano.shared(np.float32(SGD_momentum_))
-#    base_object.SGD_global_LR.set_value(np.float32(SGD_LR_))
-        
+
     use_GradientClipping = False
     clip_limits = [0 for i in range(len(All_Gradients))]
     if hasattr(base_object, "_GradientClipping"):
         if base_object._GradientClipping:
-            print "CompileSGD:: GradientClipping ENABLED!"
+            print("CompileSGD:: GradientClipping ENABLED!")
             assert hasattr(base_object, "_GradientClipping_limit")
             clip_limits = [base_object._GradientClipping_limit] * len(All_Gradients)
 
             use_GradientClipping = True
         
-        
-        
-        
     if bWeightDecay:
-        print "CNN::using Weight decay! Change via this.SGD_global_weightdecay.set_value()"
+        print("CNN::using Weight decay! Change via this.SGD_global_weightdecay.set_value()")
         if not hasattr(base_object,"SGD_global_weightdecay"):
             base_object.SGD_global_weightdecay = theano.shared(np.asarray(0.0001).astype("float32"))
     base_object.SGD_momentum.set_value(np.float32(SGD_momentum_))
@@ -449,17 +410,14 @@ def CompileSGD(base_object, top_loss = None, params = None, input_arguments = No
     SGD_updatesa=[]
     SGD_updatesb=[]
 
-
     for i,para in enumerate(params):
         if para in params[:i]:
-            print "Detected RNN or shared param @index =",i
+            print("Detected RNN or shared param @index =",i)
         else:
             base_object.last_grads.append(theano.shared( np.zeros(para.get_value().shape,dtype=theano.config.floatX) , name=para.name+str('_LG') , borrow=0))
 
-
     for param_i, grad_i, velocity_i, clip_limit in zip(params, All_Gradients, base_object.last_grads, clip_limits):
         if use_GradientClipping:
-        
             
             SGD_updatesa.append((velocity_i, - base_object.SGD_global_LR * T.sgn(grad_i)*T.minimum(T.abs_(grad_i), clip_limit*T.ones_like(grad_i))  + velocity_i * base_object.SGD_momentum)) #use this if you want to use the gradient magnitude
         else:
@@ -481,7 +439,7 @@ def CompileSGD(base_object, top_loss = None, params = None, input_arguments = No
         base_object.train_model_SGD_b()
         return nll
     base_object.train_model_SGD = local_f
-    print "compiling SGD...DONE!"
+    print("compiling SGD...DONE!")
     return base_object.train_model_SGD
 
 
@@ -494,7 +452,7 @@ def CompileSGD_legacy(base_object, top_error = None, params = None, input_argume
         default for    params is <base_object.params>
         default for input_arguments is <[base_object.x, base_object.y]>
         """
-    print "NN:opt::compiling SGD..."
+    print("NN:opt::compiling SGD...")
     if top_error==None:
         top_error = base_object.output_layer_Loss
     if params==None:
@@ -513,7 +471,7 @@ def CompileSGD_legacy(base_object, top_error = None, params = None, input_argume
         base_object.SGD_momentum = theano.shared(np.float32(SGD_momentum_))
 #    base_object.SGD_global_LR.set_value(np.float32(SGD_LR_))
     if bWeightDecay:
-        print "CNN::using Weight decay! Change via this.SGD_global_weightdecay.set_value()"
+        print("CNN::using Weight decay! Change via this.SGD_global_weightdecay.set_value()")
         if not hasattr(base_object,"SGD_global_weightdecay"):
             base_object.SGD_global_weightdecay = theano.shared(np.asarray(0.0005).astype("float32"))
     base_object.SGD_momentum.set_value(np.float32(SGD_momentum_))
@@ -522,15 +480,14 @@ def CompileSGD_legacy(base_object, top_error = None, params = None, input_argume
     SGD_updatesb=[]
 
     if bWeightDecay:
-        print "CNN::using Weight decay! Change value via this.global_weightdecay_param.set_value()"
+        print("CNN::using Weight decay! Change value via this.global_weightdecay_param.set_value()")
         base_object.global_weightdecay_param = theano.shared(np.asarray(0.0005).astype("float32"))
 
     for i,para in enumerate(params):
         if para in params[:i]:
-            print "Detected RNN or shared param @index =",i
+            print("Detected RNN or shared param @index =",i)
         else:
             base_object.last_grads.append(theano.shared( np.zeros(para.get_value().shape,dtype=theano.config.floatX) , name=para.name+str('_LG') , borrow=0))
-
 
     for param_i, grad_i, last_grad_i in zip(base_object.params, All_Gradients, base_object.last_grads):
 
@@ -555,10 +512,6 @@ def CompileSGD_legacy(base_object, top_error = None, params = None, input_argume
         base_object.train_model_SGD_b()
         return nll
     base_object.train_model_SGD = local_f
-    print "compiling SGD...DONE!"
+    print("compiling SGD...DONE!")
     return base_object.train_model_SGD
-
-
-
-
 

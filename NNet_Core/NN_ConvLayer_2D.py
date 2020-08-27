@@ -27,7 +27,7 @@ THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABI
 TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 """
-
+from __future__ import print_function
 import numpy as np
 import numpy
 
@@ -35,14 +35,13 @@ import numpy
 import theano
 import theano.tensor as T
 from theano.tensor.nnet import conv #('batch', 'channel', x, y)
-#from theano.sandbox.cuda.basic_ops import gpu_contiguous
 
 import time
 
 def max_pool_along_second_axis(sym_input, pool_factor):
     """ for MLP and 2D conv"""
     s = None
-    for i in xrange(pool_factor):
+    for i in range(pool_factor):
         t = sym_input[:,i::pool_factor]
         if s is None:
             s = t
@@ -71,29 +70,25 @@ def get_reconstructed_input(self, hidden):
     return rectified_linear_activation(stretch_unpooling_out + self.b_prime.dimshuffle('x', 0, 'x', 'x'))
 
 
-
 def my_max_pool_2d(sym_input, pool_shape = (2,2)):
     """ this one is pure theano. Hence all gradient-related stuff is working! No dimshuffling"""
 
     s = None
-    for i in xrange(pool_shape[1]):
+    for i in range(pool_shape[1]):
         t = sym_input[:,:,:,i::pool_shape[1]]
         if s is None:
             s = t
         else:
             s = T.maximum(s, t)
-
     temp = s
     s = None
-    for i in xrange(pool_shape[0]):
+    for i in range(pool_shape[0]):
         t = temp[:,:,i::pool_shape[0],:]
         if s is None:
             s = t
         else:
             s = T.maximum(s, t)
-
     sym_ret = s
-
     return sym_ret
 
 
@@ -139,11 +134,11 @@ class ConvPoolLayer(object):
         assert output_axes in ["theano","native"]
         assert input_axes  in ["theano","native"]
         if b_ReverseConvolution:
-            print "DeconvPoolLayer(2D)"
+            print("DeconvPoolLayer(2D)")
             bTheanoConv = 0
         else:
-            print "ConvPoolLayer(2D)"
-        print "   input (image) =",input_shape
+            print("ConvPoolLayer(2D)")
+        print("   input (image) =", input_shape)
             
         assert use_fragment_pooling == 0,"todo"
         assert dense_output_from_fragments==0,"todo"
@@ -153,10 +148,8 @@ class ConvPoolLayer(object):
         else:
             assert input_shape[1] == filter_shape[0]
         
-        
         filter_shape_xy = filter_shape[2:]
         input_shape_xy = input_shape[2:]
-
 
         self.input = input
         #self.rng=rng
@@ -166,7 +159,6 @@ class ConvPoolLayer(object):
 
         self.input_shape = input_shape
         self.input_layer = input_layer
-
 
         # filter is 3D of shape (depth==#filtersPreviousLayer,x,y)
 
@@ -180,12 +172,10 @@ class ConvPoolLayer(object):
         # initialize weights with random weights
         W_bound = numpy.sqrt(3. / (fan_in + fan_out)) #6.0 / numpy.prod(filter_shape[1:]) #
 
+        print("   filter        =",filter_shape," @ std =",W_bound)
 
-        print "   filter        =",filter_shape," @ std =",W_bound
-
-        #        print "w_init std =",W_bound
         if bTheanoConv==False:
-            print "WARNING: layout of W has changed (bTheanoConv==False)! Beware if ConvPoolLayer.W is directly accessed!"
+            print("WARNING: layout of W has changed (bTheanoConv==False)! Beware if ConvPoolLayer.W is directly accessed!")
         if W==None:
             self.W = theano.shared(#numpy.asarray(        self.rng.normal(loc=0, scale = W_bound, size=filter_shape), dtype=theano.config.floatX)
             numpy.asarray(numpy.random.normal(0, W_bound, filter_shape if bTheanoConv else (filter_shape[1],filter_shape[2],filter_shape[3],filter_shape[0]) ), dtype=theano.config.floatX)
@@ -221,19 +211,10 @@ class ConvPoolLayer(object):
         else:
             raise NotImplementedError()
 
-
-
-
-
-
-        #rng.uniform(low=-W_bound, high=W_bound, size=filter_shape), dtype=theano.config.floatX)     ,  borrow=True, name='W')
-            #self.W = theano.shared(numpy.zeros(filter_shape, dtype=theano.config.floatX)  ,  borrow=True, name='W')
-
         num_output_channels = int(filter_shape[0]/cross_channel_pooling_groups)
 
         if ActivationFunction in ['sigmoid', 'sig']:
             b_values =  0.5*numpy.ones((num_output_channels,), dtype=theano.config.floatX) #/filter_shape[3]/filter_shape[2]
-            #self.b =  theano.shared(value=b_values, borrow=True, name='b_conv')
         else:
             # one bias per output feature map
             if ActivationFunction in ['relu', 'ReLu']:
@@ -260,11 +241,10 @@ class ConvPoolLayer(object):
                     is_error=1
                 
             if is_error:
-                print
-                print "ERROR/WARNING: Please use a different filter shape OR different input shape"
-                print "2D Input shape: ",input_shape_xy
-                print "2D Filter shape:",filter_shape_xy
-                print "2D Conv. output:",sp_after_conv,"is not divisible by 2 (pooling)!"
+                print("ERROR/WARNING: Please use a different filter shape OR different input shape")
+                print("2D Input shape: ",input_shape_xy)
+                print("2D Filter shape:",filter_shape_xy)
+                print("2D Conv. output:",sp_after_conv,"is not divisible by 2 (pooling)!")
                 
                 raise StandardError("ERROR/WARNING: Please use a different filter shape OR different input shape")
             
@@ -281,29 +261,25 @@ class ConvPoolLayer(object):
             #channels must be divisible by 4. Must be C contiguous. You can enforce this by calling theano.sandbox.cuda.basic_ops.gpu_contiguous on it.
             #filters: (in_channels, filter_x, filter_y, num_filters)
             #output: (output channels, output rows, output cols, batch size)
-            print "WARNING: reshaping input & output, to match the cuda-convnet convention! Modify to gain speed."
-            print "Use batchsize = n*128  (n=1,2,3,...)"
+            print("WARNING: reshaping input & output, to match the cuda-convnet convention! Modify to gain speed.")
+            print("Use batchsize = n*128  (n=1,2,3,...)")
             assert self.number_of_filters%16==0,"Not supported by Alex' code"
-            print "input will be automatically reshaped (as if TheanoConv was used)"
+            print("input will be automatically reshaped (as if TheanoConv was used)")
             cc_input_shape = None
             if b_ReverseConvolution:
-                print "b_ReverseConvolution:: using strange 'input_shape' (-2 instead of -1)"
-                print "input_shape",input_shape
+                print("b_ReverseConvolution:: using strange 'input_shape' (-2 instead of -1)")
+                print("input_shape",input_shape)
                 if input_axes=="theano":
                     cc_input_shape = (convolution_stride*input_shape[2] + self.filter_shape[2]-2, convolution_stride*input_shape[3] + self.filter_shape[3]-2)
                 else:
                     cc_input_shape = (convolution_stride*input_shape[1] + self.filter_shape[2]-2, convolution_stride*input_shape[2] + self.filter_shape[3]-2)
-                print "cc_input_shape ",cc_input_shape 
+                print("cc_input_shape ",cc_input_shape )
             tmp = convnet.Conv2D(self.W, 
                                  input_axes =('b', 'c', 0, 1) if (b_ReverseConvolution==False and input_axes=="theano" or b_ReverseConvolution==True and output_axes=="theano")  else ('c', 0, 1, 'b'), 
                                  output_axes=('b', 'c', 0, 1) if (b_ReverseConvolution==False and output_axes=="theano" or b_ReverseConvolution==True and input_axes=="theano") else ('c', 0, 1, 'b'), 
                                  kernel_stride=(convolution_stride,convolution_stride), 
                                  pad= int((filter_shape[2]-1)/2.) if bUpsizingLayer else 0,input_shape=cc_input_shape, batch_size=None)#input_shape[0]
 
-
-
-                 
-                 
             input_mod = input#.dimshuffle(1,2,3,0) #gpu_contiguous( input.dimshuffle(1,2,3,0))
             if b_ReverseConvolution:
                 
@@ -311,16 +287,7 @@ class ConvPoolLayer(object):
             else:
                 self.conv_out = tmp.lmul(input_mod)#.dimshuffle(3,0,1,2)
                                            
-                                           
-#            conv_out = filter_acts.FilterActs( stride=convolution_stride, pad= int((filter_shape[2]-1)/2) if bUpsizingLayer else 0)(input.dimshuffle(1,2,3,0), self.W).dimshuffle(3,0,1,2)
-#            conv_out = cc_temp.make_node
-
-
-#            print "todo: add alex max-pooling here..."
         # downsample each feature map individually, using maxpooling
-
-
-#        self.conv_output = Activation_f(self.conv_out  + self.b.dimshuffle('x', 0, 'x', 'x'))
 
         if poolsize !=1:
             assert poolsize==2
@@ -331,28 +298,20 @@ class ConvPoolLayer(object):
         if cross_channel_pooling_groups>1:
             pooled_out = max_pool_along_second_axis(pooled_out,cross_channel_pooling_groups)
 
-        #lazy hack
-#        print input_shape (None, 4, 32, 32)
+
         if input_shape[0]==None:
             output_shape = list(theano.function([input], pooled_out.shape,mode='FAST_COMPILE' if bTheanoConv else 'FAST_RUN')(numpy.zeros((1,)+input_shape[1:],dtype=numpy.float32)))
             output_shape[0] = None
             output_shape=tuple(output_shape)
         else:
             output_shape = tuple(theano.function([input], pooled_out.shape,mode='FAST_COMPILE' if bTheanoConv else 'FAST_RUN')(numpy.zeros(input_shape,dtype=numpy.float32)))
-        print "   output        =",output_shape
+        print("   output        =",output_shape)
 
         self.output_shape = output_shape
 
-
-
         lin_output = pooled_out + self.b.dimshuffle('x', 0, 'x', 'x')
 
-
         self.output = Activation_f(lin_output)
-
-
-
-
 
 #       self.output = T.tanh(()) #(1, 49, 247, 247)
 
@@ -361,14 +320,12 @@ class ConvPoolLayer(object):
 #       output        = (None, 15, 28, 28)
 
         if bDropoutEnabled_:
-            print "Dropout enabled."
+            print("Dropout enabled.")
             self.SGD_dropout_rate = theano.shared(np.asscalar(np.ones(1,dtype=np.float32)*0.5))
             rng = T.shared_randomstreams.RandomStreams(int(time.time()))
             #(self.output_shape[2],self.output_shape[2])
             self.dropout_gate = 2*rng.binomial(self.output.shape,1,1.0-self.SGD_dropout_rate,dtype=theano.config.floatX) #theano.shared(value=numpy.ones((n_out),dtype=np.float32), name='percep_dropout_gate')
             self.output =  self.output * self.dropout_gate#.dimshuffle(('x', 'x', 0, 1))#T.switch(self.bDropoutEnabled, self.output * self.dropout_gate.dimshuffle(('x', 0)), self.output )
-
-
 
         # (bs,ch,x,y) --> (ch,bs,x,y), flatten this --> (ch, bs*x*y), swap labels --> (bs*x*y, ch)
         self.class_probabilities = T.nnet.softmax( lin_output.dimshuffle((1,0,2,3)).flatten(2).dimshuffle((1,0))  )#e.g. shape is (484, 2) for 2 classes ( i.e. have to set n.of filters = 2) and predicting  22x22 labels at once
@@ -376,40 +333,27 @@ class ConvPoolLayer(object):
         #(x*y*bs, ch) --> (bs,x,y, ch)  --swap-->  (bs, ch, x, y)
         self.class_probabilities_realshape = self.class_probabilities.reshape(((self.output_shape[0] if self.output_shape[0] is not None else 1),)+tuple(self.output_shape[2:])+(self.output_shape[1],)).dimshuffle((0,3,1,2))
 
-
     #   input (image) = (10, 32, 36, 36)
     #   filter        = (3, 32, 5, 5)
     #   output        = (10, 3, 32, 32)
 #        to interpret as 10 color images 32x32
 
-#e_x     = exp(x - input.max(axis=1, keep_dims=True))
-#softmax = e_x / e_x.sum(axis=1, keep_dims=True)
-
-#        if output_shape[0]==None:
-#            print "Please change the last reshape() of the next line!"
-#            raise NotImplementedError()
 
         #colorchannel_probabilities are done separately for each color channel and (of course) separately for each image in the batch
         self.colorchannel_probabilities = T.nnet.softmax( (lin_output).flatten(3).dimshuffle((2,0,1)).flatten(2).dimshuffle((1,0))  ).reshape((-1, np.product(self.output_shape[1:]) )) # reshape((self.output_shape[0], np.product(self.output_shape[1:]) ))
         #pooled_out + self.b.dimshuffle('x', 0, 'x', 'x')
-
-#flatten(x) collapses the last dimensions until x dimensions remain.
-
-#        print np.shape(theano.function([self.input],(pooled_out + self.b.dimshuffle('x', 0, 'x', 'x')).flatten(3))(np.random.random(self.input_shape).astype(np.float32)) )
-#        raw_input("BLAA")
-
-
+        
+        #flatten(x) collapses the last dimensions until x dimensions remain.
+        
         # compute prediction as class whose "probability" is maximal in symbolic form
         self.class_prediction = T.argmax(self.class_probabilities, axis=1)
         #(x*y*bs) --> (x,y,bs) --> (bs,x,y)
 #        self.class_prediction_realshape = T.argmax(self.class_probabilities, axis=1).reshape(tuple(self.output_shape[2:])+(self.output_shape[0],)).dimshuffle((2,0,1))
         #output has shape e.g. (1,2,57,57); only the last two may change, 2 classes are predicted
 
-        #self.class_probabilities = output_softmax
-
-
         # store parameters of this layer
         self.params = [self.W, self.b]
+
 
     def randomize_weights(self, scale_w = 1.0, value_b = 0.01):
         self.W.set_value(numpy.asarray(numpy.random.normal(0, 0.02 * scale_w, self.filter_shape), dtype=theano.config.floatX))
@@ -436,7 +380,6 @@ class ConvPoolLayer(object):
         #print "at least, y must be provided in a flattened view (a list of class values)!"
 
         return -T.mean(T.log(self.class_probabilities)[T.arange(y.shape[0]),y]) #shape of class_probabilities is e.g. (14*14,2) for 2 classes and 14**2 labels
-
 
 
     def negative_log_likelihood_classwise_masking(self, y, mask_class_labeled, mask_class_not_present):
@@ -470,22 +413,6 @@ class ConvPoolLayer(object):
         
         return nll
         
-#        no_cls   = T.alloc(np.int16(255), 1,1,1,1)
-#        no_cls_ix = T.eq(no_cls,y) # (bs,x,y) tensor, 1 where y==255
-#        # true if y==255 AND for outputneurons of (generally) labelled classes,
-#        # i.e. at positions all where those classes are NOT appearing in the        data
-#        no_cls_ix = no_cls_ix.dimshuffle * mask_class_labeled.dimshuffle(0, 1, 'x', 'x')
-#        no_cls_ix = no_cls_ix.nonzero() # selects the output neurons of        negatively labelled pixels
-#        
-#        ix       =       T.arange(self.class_probabilities.shape[1]).dimshuffle('x', 0, 'x','x')  # (1,4,1, 1 )
-#        select   = T.eq(ix,y).nonzero() # selects the output neurons of        positively labelled pixels
-#        
-#        push_up  = -T.log(self.class_probabilities)[select]
-#        push_dn  =  T.log(self.class_probabilities)[no_cls_ix] / mask_class_labeled.sum(axis=1).dimshuffle(0, 'x', 'x', 'x')
-#        nll_inst = push_up + push_dn
-#        nll      = T.mean(nll_inst)
-
-
 
     def negative_log_likelihood_ignore_zero(self, y):
         """--Return the mean of the negative log-likelihood of the prediction
@@ -501,11 +428,6 @@ class ConvPoolLayer(object):
         return -T.mean((theano.tensor.neq(y,0))*T.log(self.class_probabilities)[T.arange(y.shape[0]),y]) #shape of class_probabilities is e.g. (14*14,2) for 2 classes and 14**2 labels
 
 
-
-
-
-
-
     def squared_distance(self, Target):
         """Target is the TARGET image (vectorized), -> shape(x) = (batchsize*imgsize**2)
             output: scalar float32
@@ -513,7 +435,6 @@ class ConvPoolLayer(object):
         # use flatten(2) if the shape should be (batchsize,imgsize**2)
         return T.mean( (self.output.flatten() - Target)**2 )
         
-
 
     def cross_entropy(self, Target):#, index, new_shape):
         """Target is the TARGET image (vectorized), -> shape(x) = (batchsize, imgsize**2)
@@ -528,17 +449,6 @@ class ConvPoolLayer(object):
             the output is of length: <batchsize>, Use cross_entropy() to get a scalar output.
         """
         return -T.mean( T.log(self.colorchannel_probabilities)*Target + T.log(1-self.colorchannel_probabilities)*(1-Target) ,axis=1)
-
-
-#    def add_normalization(self):
-#
-#        #lcn = LeCunLCN(img_shape = self.output_shape, kernel_size=7, batch_size=self.input_shape[0], threshold=1e-4, channels=None)
-#        print "add_normalization::",self.output_shape
-#
-#        print "TODO: try normalization BEFORE max-pooling"
-#        self.output_no_lcn = self.output
-#        self.output = pylearn2_preprocessing.lecun_lcn( self.output, img_shape = self.output_shape, kernel_shape=(5,5),  threshold=1e-4)#lcn(self.output)
-#        return
 
 
     def errors(self, y):
@@ -561,5 +471,5 @@ class ConvPoolLayer(object):
             # represents a mistake in prediction
             return T.mean(T.neq(self.class_prediction, y))
         else:
-            print "something went wrong"
+            print("something went wrong")
             raise NotImplementedError()

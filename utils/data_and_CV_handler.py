@@ -28,11 +28,10 @@ THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABI
 TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 """
-
+from __future__ import print_function
 import os
 from os import listdir as _listdir
-from os.path import isfile as _isfile,join as  _join
-
+from os.path import isfile as _isfile, join as  _join
 
 
 def list_files(dir_paths, endswith=None, contains=None, startswith=None, contains_not=None):
@@ -48,9 +47,6 @@ def list_files(dir_paths, endswith=None, contains=None, startswith=None, contain
             print("path",path,"invalid")
     files.sort()
     return files
-
-
-
 
 
 def filter_list(string_list,endswith=None, contains=None, startswith=None, contains_not=None):
@@ -77,8 +73,6 @@ def list_directories(dir_paths, endswith=None, contains=None, startswith=None, c
     return files
 
 
-
-
 def LPBA40_data(location):
     all_ = list_directories(location)
     list_training_data_=[]
@@ -98,12 +92,8 @@ def LPBA40_data(location):
     return list_training_data_, list_training_labels_
 
 
-
-
 def IBSR_data(location):
-
     all_ = list_directories(location)
-
     list_training_data_=[]
     list_training_labels_=[]
     for x in all_:
@@ -121,13 +111,11 @@ def IBSR_data(location):
     return list_training_data_, list_training_labels_
 
 
-
 def ID_check(list_training_data_, list_training_labels_):
     IDs_data = ['.'.join(x.replace('\\','/').split('/')[-1].split('_')[:2]) for x in list_training_data_]
     IDs_labels = ['.'.join(x.replace('\\','/').split('/')[-1].split('_')[:2]) for x in list_training_labels_]
     for a,b in zip(IDs_data, IDs_labels):
         assert a==b, 'training data/labels are shuffled and do not match!: '+a+' <>  '+b
-
 
 
 def OASIS_data(location, labels_location = None):
@@ -160,7 +148,6 @@ def Tumor_data_JensCustomCreated():
     return list_training_data_, list_training_labels_
 
 
-
 def get_CrossVal_part(list_training_data, list_training_labels, CV_index, CV_total_folds = 2):
     """ Splits data into training data/labels and test set.
 
@@ -174,16 +161,12 @@ def get_CrossVal_part(list_training_data, list_training_labels, CV_index, CV_tot
             """
     N = len(list_training_data)
     cross_val_n_per_test= int(N*1./CV_total_folds)
-
     offset = CV_index*cross_val_n_per_test # must be calculated BEFORE the next if check !!!!!!!!!
 
     if CV_index == CV_total_folds - 1:
         cross_val_n_per_test = N - CV_index*cross_val_n_per_test # all remaining examples
-
     list_test_data       = list_training_data[offset : offset + cross_val_n_per_test]
     list_training_data   = list_training_data[:offset]  + list_training_data[offset+cross_val_n_per_test:]
     list_training_labels = list_training_labels[:offset]  + list_training_labels[offset+cross_val_n_per_test:]
     assert len(list_training_data)==len(list_training_labels)
     return {'list_test_data':list_test_data,'list_training_data':list_training_data, 'list_training_labels':list_training_labels}
-
-

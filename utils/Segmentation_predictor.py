@@ -28,15 +28,8 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR TH
 
 """
 
-"""
-(Gregor Urban)
 
-5.11.2013 (first functional rewrite)
-31.3.2014 (fork from seg_main.py)
-30.3.2016 (small changes for code-publishing)
-
-"""
-
+from __future__ import print_function
 
 import time
 import numpy as np
@@ -44,7 +37,6 @@ import NNet_Core.utilities as utilities
 import file_reading
 import helper_seg as helper
 import scipy.ndimage as ndimage
-
 
 
 def predict_all(cnn, patchCreator, apply_cc_filtering, set_selection = 'all', 
@@ -58,21 +50,16 @@ def predict_all(cnn, patchCreator, apply_cc_filtering, set_selection = 'all',
     for input_to_cnn_depth in [4]:
         if hasattr(cnn,"output")== False or cnn.output==None:
             import theano
-            print "compiling output function"
+            print("compiling output function")
             cnn.output   = theano.function([cnn.x], cnn.layers[-1].class_probabilities_realshape )
 
-        
         timings=[]
         run_Net_on_multiple(patchCreator, input_to_cnn_depth=input_to_cnn_depth, cnn = cnn, 
                             str_data_selection= set_selection,  
                             save_file_prefix = save_as, 
                             apply_cc_filtering = apply_cc_filtering,
                             output_filetype = output_filetype, save_prob_map = save_prob_map)
-
-        
-
-    print
-
+        print()
 
 
 def runNetOnSlice(cnn, patchCreator, DATA, n_classes=0, channel2_data=None):
@@ -95,7 +82,6 @@ def runNetOnSlice(cnn, patchCreator, DATA, n_classes=0, channel2_data=None):
         ImgInputSize = np.asarray((ImgInputSize,)*3)
 
     pred = np.zeros( (n_classes, )+tuple(CNET_stride*pred_size),dtype=np.float32) # output
-
 
     if DATA.ndim==3 or DATA.ndim==4:
         if DATA.ndim==3:
@@ -141,11 +127,6 @@ def runNetOnSlice(cnn, patchCreator, DATA, n_classes=0, channel2_data=None):
 
 
 
-
-
-
-
-
 def run_Net_on_Block(cnn, DATA, patchCreator, bool_predicts_on_softmax=None,
                      added_data="auto_detect", second_input_data=None, rescale_predictions_to_max_range = True):
     """ :DATA: is the original input data. This function will pad it!
@@ -155,12 +136,12 @@ def run_Net_on_Block(cnn, DATA, patchCreator, bool_predicts_on_softmax=None,
         import theano
         assert bool_predicts_on_softmax!=None,"must specify <bool_predicts_on_softmax>"
         if bool_predicts_on_softmax:
-            print "compiling output function (class_probabilities_realshape)"
-            print "WARNING: if this is a MALIS net, then this is WRONG!!!\n"*3
-            print
+            print("compiling output function (class_probabilities_realshape)")
+            print("WARNING: if this is a MALIS net, then this is WRONG!!!\n"*3)
+            print()
             cnn.output   = theano.function([cnn.x], cnn.layers[-1].class_probabilities_realshape )
         else:
-            print "compiling output function (direc neuron output)"
+            print("compiling output function (direc neuron output)")
             cnn.output   = theano.function([cnn.x], cnn.layers[-1].output )
 
     CNET_stride    = patchCreator.CNET_stride if cnn.use_fragment_pooling==0 else 1
@@ -187,7 +168,7 @@ def run_Net_on_Block(cnn, DATA, patchCreator, bool_predicts_on_softmax=None,
 
     if added_data!=None:
         #assuming channels are last dim.
-        print "fusing:",DATA.shape,"+",s
+        print("fusing:",DATA.shape,"+",s)
         if DATA.ndim==added_data.ndim:
             newd = np.zeros( DATA.shape[:-1]+(s[-1]+DATA.shape[-1],),DATA.dtype)
             newd[...,:DATA.shape[-1]]=DATA
@@ -199,7 +180,7 @@ def run_Net_on_Block(cnn, DATA, patchCreator, bool_predicts_on_softmax=None,
         DATA = newd
     
     
-    print "Predicting data of shape:",DATA.shape
+    print("Predicting data of shape:", DATA.shape)
 
     if patchCreator.padded_once==False:
         DATA = helper.greyvalue_data_padding(DATA, offset_l, offset_r)
@@ -211,7 +192,7 @@ def run_Net_on_Block(cnn, DATA, patchCreator, bool_predicts_on_softmax=None,
         assert len(s)==3
         second_input_data_2[offset_l:offset_l+s[0],offset_l:offset_l+s[1],offset_l:offset_l+s[2]]=second_input_data
         second_input_data=second_input_data_2
-        print "second_input_data (new) ~",second_input_data.shape
+        print("second_input_data (new) ~",second_input_data.shape)
 
     ret_size_per_runonslice = cnn.layers[-1].output_shape[-1]*CNET_stride
 
@@ -224,7 +205,7 @@ def run_Net_on_Block(cnn, DATA, patchCreator, bool_predicts_on_softmax=None,
     ret_3d_cube = np.zeros( (n_classes,)+tuple(   DATA.shape[:3]   ) , dtype="float32")
 
     for i in range(n_runs_p_dim[0]):
-        print "COMPLETION =", 100.*i/n_runs_p_dim[0],"%"
+        print("COMPLETION =", 100.*i/n_runs_p_dim[0],"%")
         for j in range(n_runs_p_dim[1]):
             for k in range(n_runs_p_dim[2]):
                 offset = (ret_size_per_runonslice*i,ret_size_per_runonslice*(j),ret_size_per_runonslice*k)
@@ -240,16 +221,7 @@ def run_Net_on_Block(cnn, DATA, patchCreator, bool_predicts_on_softmax=None,
     sav = sav[1] # pick class 1
     if rescale_predictions_to_max_range:
         sav = (sav-sav.min())/(sav.max()+1e-7) # rescale the predicted probabilities (assuming that there is *something* positive in the data, otherwise this is quite bad...)
-    
     return sav
-
-
-
-
-
-
-
-
 
 
 def remove_small_conneceted_components(raw):
@@ -275,8 +247,6 @@ def remove_small_conneceted_components(raw):
     return data
 
 
-
-
 def run_Net_on_multiple(patchCreator, input_to_cnn_depth=1, cnn = None, 
                         str_data_selection="all", save_file_prefix="", 
                         apply_cc_filtering = False, output_filetype = 'h5', save_prob_map = False):
@@ -292,13 +262,10 @@ def run_Net_on_multiple(patchCreator, input_to_cnn_depth=1, cnn = None,
     
     DATA = patchCreator.data
     timings=[]
-#    if hasattr(patchCreator,"second_input_data"):
-#        second_input_data = patchCreator.second_input_data[opt_list_index]
-    
+
     for opt_list_index in range(MIN, MAX):
-        
-        print "-"*30
-        print "@",opt_list_index+1,"of max.",len(patchCreator.data)
+        print("-"*30)
+        print("@",opt_list_index+1,"of max.",len(patchCreator.data))
         postfix = "" if opt_list_index==None else "_" + utilities.extract_filename(patchCreator.file_names[opt_list_index])[1] if isinstance(patchCreator.file_names[0], str) else str(patchCreator.file_names[opt_list_index]) if not isinstance(patchCreator.file_names[opt_list_index], tuple) else utilities.extract_filename(patchCreator.file_names[opt_list_index][0])[1]
         if opt_list_index is not None:
             is_training = "_train" if (opt_list_index < patchCreator.training_set_size) else "_test"
@@ -309,7 +276,6 @@ def run_Net_on_multiple(patchCreator, input_to_cnn_depth=1, cnn = None,
         t0 = time.clock()
         sav = run_Net_on_Block(cnn, DATA[opt_list_index], patchCreator, bool_predicts_on_softmax=1,
                                second_input_data = second_input_data) #this one does all the work
-        
         t1 = time.clock()
         timings.append(t1-t0)
         if apply_cc_filtering:
@@ -318,10 +284,8 @@ def run_Net_on_multiple(patchCreator, input_to_cnn_depth=1, cnn = None,
         
         save_pred(sav, this_save_name, output_filetype, save_prob_map)
     
-    print 'timings (len',len(timings),')',np.mean(timings),'+-',np.std(timings)
+    print('timings (len',len(timings),')',np.mean(timings),'+-',np.std(timings))
     return None
-
-
 
 
 def save_pred(prediction, this_save_name, output_filetype, save_prob_map):
@@ -336,129 +300,22 @@ def save_pred(prediction, this_save_name, output_filetype, save_prob_map):
             np.save(this_save_name, sav)
         else:
             raise NotImplementedError(output_filetype)
-    
     sav = (sav>0.5).astype('int8')
-    
     if output_filetype == 'h5':
         file_reading.save_h5(this_save_name+'_mask.h5',sav)
     elif output_filetype == 'nifti':
         file_reading.save_nifti(this_save_name+'_mask.nii.gz',sav)
-        
         
     elif output_filetype == 'numpy':
         file_reading.mkdir(this_save_name+'_mask.npy')
         np.save(this_save_name+'_mask.npy', sav)
     else:
         raise NotImplementedError(output_filetype)
+    print("File saved as:", this_save_name)
 
-    print "File saved as:",this_save_name
-    
     return 0
 
 
-
-
-
-
-
-
-#def run_Net_on_multiple__recursive(patchCreator, input_to_cnn_depth=1, cnn = None, opt_list_index=None,
-#                        opt_list_predict_all_data=True, str_data_selection="all",
-#                        opt_random_ID=None, DATA=None, save_file_prefix="", timings=[], 
-#                        apply_cc_filtering = False, output_filetype = 'h5', save_prob_map = False):
-#    """ run runNetOnSlice() on neighbouring blocks of data.
-#        if opt_cnn is not none, it should point to a CNN / Net that will be used.
-#        if patchCreator contains a list of 3D data blocks (patchCreator.second_input_data) then it will be used as second input to cnn.output()
-#    """
-#    
-#    second_input_data = None
-#    if DATA==None:
-#        if type(patchCreator.data)!=type([]) and (patchCreator.data.ndim)>=3:
-#            DATA = patchCreator.data
-#        elif type(patchCreator.data)==type([]):
-#            if opt_list_index==None:
-#                assert str_data_selection in ["all", "train", "test"]
-#                opt_list_index=0 if str_data_selection in ["all", "train"] else patchCreator.training_set_size
-#            if ((opt_list_index>=len(patchCreator.data)) and (str_data_selection in  ["all", "test"])) or ((opt_list_index>=patchCreator.training_set_size) and (str_data_selection =="train")):
-#                print "Done. Final index is",opt_list_index
-#                return 0
-#            DATA = patchCreator.data[opt_list_index]
-#            if hasattr(patchCreator,"second_input_data"):
-#                second_input_data = patchCreator.second_input_data[opt_list_index]
-#        else:
-#            print "\nError: Unsupported input data; shape is",patchCreator.data.shape
-#    else:
-#        if DATA.ndim==5:
-#            assert DATA.shape[0]==1
-#            DATA=DATA[0]
-#    print "-"*30
-#    print "@",opt_list_index+1,"of max.",len(patchCreator.data)
-#    if opt_random_ID==None:
-#        opt_random_ID = str(np.random.randint(1e7,1e8-1))
-#
-#    postfix = "" if opt_list_index==None else "_" + utilities.extract_filename(patchCreator.file_names[opt_list_index])[1] if type(patchCreator.file_names[0])==type("blubb") else str(patchCreator.file_names[opt_list_index]) if type(patchCreator.file_names[opt_list_index])!=type((1,)) else utilities.extract_filename(patchCreator.file_names[opt_list_index][0])[1]
-#    if opt_list_index is not None:
-#        is_training = "_train" if (opt_list_index < patchCreator.training_set_size) else "_test"
-#    else:
-#        is_training=""
-#    this_save_name = save_file_prefix+"prediction"+postfix+"_"+is_training
-#    
-#
-#    t0 = time.clock()
-#    sav = run_Net_on_Block(cnn, DATA, patchCreator, bool_predicts_on_softmax=1,
-#                           second_input_data = second_input_data) #this one does all the work
-#    
-#    
-#    t1 = time.clock()
-#    timings.append(t1-t0)
-#    print 'timings (len',len(timings),')',np.mean(timings),'+-',np.std(timings)
-#    if apply_cc_filtering:
-#        sav = remove_small_conneceted_components(sav)
-#        sav = 1 - remove_small_conneceted_components(1 - sav)
-#                
-#    if save_prob_map:
-#        if output_filetype == 'h5':
-#            file_reading.save_h5(this_save_name+'.h5',sav)
-#        elif output_filetype == 'nifti':
-#            file_reading.save_nifti(this_save_name+'.nii.gz',sav)
-#        elif output_filetype == 'numpy':
-#            file_reading.mkdir(this_save_name+'.npy')
-#            np.save(this_save_name, sav)
-#        else:
-#            raise NotImplementedError(output_filetype)
-#    
-#    sav = (sav>0.5).astype('int8')
-#    
-#    if output_filetype == 'h5':
-#        file_reading.save_h5(this_save_name+'_mask.h5',sav)
-#    elif output_filetype == 'nifti':
-#        file_reading.save_nifti(this_save_name+'_mask.nii.gz',sav)
-#        
-#        
-#    elif output_filetype == 'numpy':
-#        file_reading.mkdir(this_save_name+'_mask.npy')
-#        np.save(this_save_name+'_mask.npy', sav)
-#    else:
-#        raise NotImplementedError(output_filetype)
-#
-#    print "File saved as:",this_save_name
-#
-#    del DATA
-#    del sav
-#
-#    if opt_list_predict_all_data==True and opt_list_index!=None:
-#        return run_Net_on_multiple(patchCreator, input_to_cnn_depth=input_to_cnn_depth, cnn = cnn, opt_list_index=opt_list_index+1, 
-#                                   str_data_selection=str_data_selection, opt_list_predict_all_data=opt_list_predict_all_data, 
-#                                   opt_random_ID=opt_random_ID, save_file_prefix=save_file_prefix, output_filetype=output_filetype,
-#                                   save_prob_map=save_prob_map, apply_cc_filtering = apply_cc_filtering)
-#    return None
-
-
-
-
-
-
 if __name__ == '__main__':
-    print "please execute main_train.py instead!"
-
+    print("please execute main_train.py instead!")
 

@@ -34,6 +34,8 @@ Format:
     experiment_name, Datensatz, ID, Methode, Dice, Jac, Sen, Spec, 
     3a, IBSR, 0001, CNN, 0.95, 0.87, ... 
 """
+from __future__ import print_function
+
 
 def make_R_readable_string(dic, experiment_name, dataset_name):
     """funct
@@ -47,9 +49,9 @@ def make_R_readable_string(dic, experiment_name, dataset_name):
     n = len(dic.values()[0])
     for x in dic.values():
         if n != len(x):
-            print "ERROR"
-            print "make_R_readable_string:: length mismatch!"
-            print dic
+            print("ERROR")
+            print("make_R_readable_string:: length mismatch!")
+            print(dic)
             break
     
     for elems in zip(*dic.values()):
@@ -68,6 +70,6 @@ if __name__=="__main__":
     dic["Dice"] = np.random.random(10)
     dic["Jac"] = np.random.random(10)
     
-    print make_R_readable_string(dic,"Test01","IBSR")
+    print(make_R_readable_string(dic,"Test01","IBSR"))
 
 

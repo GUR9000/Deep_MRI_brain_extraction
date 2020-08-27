@@ -27,7 +27,7 @@ THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABI
 TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 """
-
+from __future__ import print_function
 
 import os,sys
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'NNet_Core'))
@@ -37,7 +37,6 @@ import numpy as np
 import random
 import itertools as it
 import file_reading
-
 
 
 def outputsize_after_convpool(img,filt,pool):
@@ -55,7 +54,6 @@ def recField(filt,pool,img=1):
     if len(filt)==1:
         return (pool[0]*img+filt[0]-1)
     return recField(filt[:-1],pool[:-1],(pool[-1]*img+filt[-1]-1))
-
 
 
 def PredictionsOffset(filter_size,pooling_factor):
@@ -84,8 +82,6 @@ def PredictMaximumInputSize(INPUT_img_size, filter_sizes, pooling_factors):
     return int(INPUT_img_size - (workon % stride))
 
 
-
-
 def make_channel_axis_last_axis(DATA):
     assert DATA.ndim==4
     nn = np.argmin(DATA.shape)
@@ -97,7 +93,6 @@ def make_channel_axis_second_axis(DATA):
     nn = np.argmin(DATA.shape)
     other = [x for x in range(4) if x != nn]
     return np.transpose(DATA ,  tuple(other[:1] + [nn] + other[1:]) )
-
 
 
 def greyvalue_data_padding(DATA, offset_l, offset_r):
@@ -118,7 +113,6 @@ def greyvalue_data_padding(DATA, offset_l, offset_r):
     return dat
 
 
-
 def pad_data(x, n_padding, mode):
     ''' padding will be added to the last axis on both front and end (i.e. size increases by 2 * n_padding
     
@@ -129,8 +123,6 @@ def pad_data(x, n_padding, mode):
     return np.pad(x, pad, mode=mode)
     
     
-    
-
 
 class PatchCreator():
     """
@@ -159,30 +151,12 @@ class PatchCreator():
         """
 
 
-        """
-        (30, 3, 3)
-        min
-        [[  7 142 125] #low, high, difference #x
-         [ 12 181 150]#y
-         [  0 132 123]]#z
-         max
-        [[ 58 189 152] #-> 153 pixels
-         [ 60 224 174] #> 175 pixels if you use x-z-slices
-         [ 86 219 145]]
-         mean
-        [[  19.03333333  158.06666667  139.03333333]
-         [  36.03333333  200.5         164.46666667]
-         [  30.73333333  163.7         132.96666667]]
-
-        """
         self.ndim =3
         b_shuffle_data = True
 
         self.training_set_size = None
 
-
         assert not (type(override_data_set_filenames)!=type([]) and type(override_data_set_filenames)!=type({1:0}))
-        
         
         self.CNET_real_imagesize = 256 # only valid for this set  np.shape(self.data)[1]
 
@@ -196,11 +170,8 @@ class PatchCreator():
                 break
 
         self.CNET_Input_Size = PredictMaximumInputSize(self.CNET_real_imagesize * best, filter_size, pooling_factor)
-#        print "PatchCreator::CNET_Input_Size = ",self.CNET_Input_Size#," down from (real size):",self.CNET_real_imagesize
-#        print 'Receptive field =',recField(filter_size[:-1], pooling_factor[:-1]),'^ 2'
 
         offs = PredictionsOffset(filter_size,pooling_factor)
-#        print "PredictionsOffset() =",offs
 
         self.CNET_labels_offset = np.asarray((offs,)*self.ndim)
         self.CNET_stride = PredictionStride(pooling_factor)
@@ -231,9 +202,6 @@ class PatchCreator():
                 self.training_set_size = len(nfiles)
                 tmp = override_data_set_filenames["test_data"]
                 nfiles += zip(tmp,[None]*len(tmp))
-                
-        
-
         self.data   = []
         self.labels = []
         self.mask   = []
@@ -241,26 +209,18 @@ class PatchCreator():
             self.file_names = nfiles
         else:
             self.file_names = [x[0] for x in nfiles]
-        print "loading..."
+        print("loading...")
         n = len(nfiles)
-
         self.num_channels = None
         self.num_classes  = 6 #[0,1,2,3,4,5]
         
-        
-
         for i,f in zip(range(len(nfiles)),nfiles):
-            
-#            print i,f
-            addtnl_info_str=''
-            
-            if type(f) is str:
 
+            addtnl_info_str=''
+            if type(f) is str:
                 d = file_reading.load_file(f)
                 d = d[0,...]
                 l = None 
-
-                
             else:
                 assert type(f[0]) is str
                 d = file_reading.load_file(f[0])
@@ -319,7 +279,7 @@ class PatchCreator():
             
             
             if d.shape[:3]!=l.shape[:3] and l.shape[:3]!=(1,1,1):
-                print "DATA SHAPE MISMATCH! transposing labels..."
+                print("DATA SHAPE MISMATCH! transposing labels...")
                 l=np.transpose(l,axes=[0,2,1])
             assert d.shape[:3]==l.shape[:3] or l.shape[:3]==(1,1,1)
             
@@ -327,56 +287,34 @@ class PatchCreator():
                 self.num_channels = d.shape[3]
             assert d.shape[3]==self.num_channels
             if self.num_channels==5:
-                print "warning: removing channel 2 (starting at 0)"
+                print("warning: removing channel 2 (starting at 0)")
                 d = np.concatenate( (d[...,:2],d[...,3:]),axis=3) #x,y,z,channels
-            
-            
             d = np.transpose(d,(0,3,1,2))
-            
-            
-
             if l is not None:
                 if l.dtype in [np.dtype('int'),np.dtype('int32'),np.dtype('int16'),np.dtype('uint32'),np.dtype('uint16')]:
                     l[l==5]=0
-#                    print "WARNING: merging class 0 and 5!"
                     l = l.astype("int16")
-#                else:
-                
-                
-                
-            print 'Loaded...',100.*(i+1)/n,"%",d.shape,addtnl_info_str, f  #, self.labels[-1].shape  #,np.unique(self.labels[-1]) #(143, 4, 175, 127) (143, 175, 127) LG0004_inclLabels.cp
+
+            print('Loaded...',100.*(i+1)/n,"%",d.shape,addtnl_info_str, f)
             
             if pad_last_dimension and (d.shape[-1] < self.CNET_Input_Size + padding_margin):
                 add_this = int((padding_margin + self.CNET_Input_Size - d.shape[-1])/2.)
                 d = pad_data(d, add_this, mode='constant')
-                #            if l.shape[-1] < self.CNET_Input_Size:
                 l = pad_data(l, add_this, mode='constant')
-                print '>> padded to:', d.shape
+                print('>> padded to:', d.shape)
             self.data.append(d)# format: (x,channels,y,z)
             self.labels.append(l)
         
-        
-
         self.CNET_data_NumImagesInData = len(self.data)#number of different images
-        
-
-
         self.number_of_images_test_set = int(self.CNET_data_NumImagesInData - self.training_set_size)
-
-        print "Total n. of examples:",self.CNET_data_NumImagesInData,"images/volumes"
-        print 'Training on',self.training_set_size,'images/volumes'
-        print 'Testing on ',self.number_of_images_test_set,'images/volumes'
-
+        print("Total n. of examples:",self.CNET_data_NumImagesInData,"images/volumes")
+        print('Training on',self.training_set_size,'images/volumes')
+        print('Testing on ',self.number_of_images_test_set,'images/volumes')
         self._getTestImage_current_file=self.training_set_size # <self.training_set_size> is the first non-training file
 
 
-
-
-
-
-
     def greyvalue_pad_data(self, cnn):
-        print self,':: greyvalue_pad_data()'
+        print(self, ':: greyvalue_pad_data()')
         assert self.padded_once==False
         self.padded_once=True
         CNET_stride    = self.CNET_stride if self.use_max_fragment_pooling==0 else 1
@@ -385,20 +323,17 @@ class PatchCreator():
 
         offset_l = self.CNET_labels_offset[0]
         offset_r = offset_l + input_s
-        print '\nold shapes',np.unique([d.shape for d in self.data])        
+        print('\nold shapes',np.unique([d.shape for d in self.data]))     
         self.data = [greyvalue_data_padding(dat, offset_l, offset_r) for dat in self.data]
 
-
         self.labels = [np.asarray(np.pad(lab, pad_width=[(offset_l,offset_r),(offset_l,offset_r),(offset_l,offset_r)],mode='constant'),dtype='int16') for lab in self.labels if lab.shape[0] != 1] + [lab for lab in self.labels if lab.shape[0] == 1]
-        print '\nnew shapes',np.unique([d.shape for d in self.data])
+        print('\nnew shapes',np.unique([d.shape for d in self.data]))
 
-        
         for d,l in zip(self.data,self.labels):
             if l.shape[0] != 1:
                 assert d.shape[0]==l.shape[0]
                 assert d.shape[2:]==l.shape[1:]
         
-
 
     def __get_cubes(self, i_min, i_max, num):
         """ picks <num> many cubes from [i_min,i_max)  (max is excluded) <num> many pictures."""
@@ -408,12 +343,9 @@ class PatchCreator():
         dat = np.zeros( (num, self.CNET_Input_Size, self.num_channels, self.CNET_Input_Size, self.CNET_Input_Size), dtype="float32")
         labshape = (num,)+(self.number_of_labeled_points_per_dim,)*self.ndim
 
-
         if self.labels[0].ndim==4:
             labshape += (self.labels[0].shape[3],)
         lab = np.zeros( labshape, dtype="int16")
-        
-        
         
         for n,i in zip(range(num),i_):
             sp = self.data[i].shape
@@ -423,10 +355,7 @@ class PatchCreator():
             dat[n,...] = self.data[i][off[0]:off[0]+self.CNET_Input_Size, :, off[1]:off[1]+self.CNET_Input_Size, off[2]:off[2]+self.CNET_Input_Size]
             loff = tuple(off) + self.CNET_labels_offset
             lab[n,...] = self.labels[i][loff[0]:loff[0]+self.number_of_labeled_points_per_dim*self.CNET_stride:self.CNET_stride, loff[1]:loff[1]+self.number_of_labeled_points_per_dim*self.CNET_stride:self.CNET_stride, loff[2]:loff[2]+self.number_of_labeled_points_per_dim*self.CNET_stride:self.CNET_stride]
-
-        return dat, lab #np.asarray(out_lab,dtype=np.int16).flatten()
-        #__get_cubes:: (1, 28, 5, 28, 28), (1, 10, 10, 10)
-
+        return dat, lab
 
 
     def __get_random_string(self):
@@ -437,7 +366,6 @@ class PatchCreator():
         return (r1,r2,r3,r4)
 
 
-
     def __transform_data(self, dat, transform, transformable=[1,3,4]):
         """ function is the inverse of itself!
         values in <transformable> are only considered if working in 5dim (currently)"""
@@ -445,7 +373,6 @@ class PatchCreator():
         ret = dat.copy()
 
         if dat.ndim==4: #__get_cubes::  (1, 10, 10, 10)
-
             (r1,r2,r3,r4)=transform
             if r1==1:
                 ret = ret[:,::-1,:,:]
@@ -455,7 +382,6 @@ class PatchCreator():
                 ret = ret[:,:,:,::-1]
 
             ret = np.transpose(ret,(0,)+tuple(np.asarray(r4)+1) )
-
 
         elif dat.ndim==5: #__get_cubes:: (1, 28, 5, 28, 28)
 
@@ -491,8 +417,5 @@ class PatchCreator():
         return da,la
 
 
-
-
 if __name__ == '__main__':
-    print "please execute main_train.py instead!"
-
+    print("please execute main_train.py instead!")

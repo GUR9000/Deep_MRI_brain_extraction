@@ -27,13 +27,15 @@ THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABI
 TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 """
-
+from __future__ import print_function
 import os
 import h5py
 import numpy as np
 
+
 def get_path(fname):
     return '/'.join(fname.replace('\\','/').split('/')[:-1])
+
 
 def get_filename(fname, remove_trailing_ftype= False):
     fn = fname.replace('\\','/').split('/')[-1]
@@ -54,7 +56,6 @@ try:
         from medpy.io import load as load_mha
     except:
         pass
-
 
     def load_nifti(fname):
         """
@@ -82,8 +83,6 @@ except:
     pass
 
 
-
-
 def load_h5(fname, key=None):
     """load h5 file"""
     try:
@@ -104,12 +103,8 @@ def load_h5(fname, key=None):
     return dat
 
 
-
-
-
 def save_h5(fname, data, compress = 1, fast_compression=1):#save as h5
     """save h5 file. set_name='data'"""
-
     mkdir(fname)
     h5f = h5py.File(fname,mode="w")
 
@@ -122,13 +117,11 @@ def save_h5(fname, data, compress = 1, fast_compression=1):#save as h5
     return 0
 
 
-
 def save_text(fname,string):
     mkdir(fname)
     f=open(fname,'w')
     f.write(string)
     f.close()
-
 
 
 def load_file(filename):
@@ -138,13 +131,11 @@ def load_file(filename):
         return d
     except:
         pass
-
     try:
         d, nifti_affine, nifti_header = load_nifti(filename)
         return d
     except:
         pass
-
     try:
         d = nib.load(filename)
         d=d.get_data()
@@ -152,10 +143,5 @@ def load_file(filename):
     except:
         pass
     assert 0, 'Could not load file <'+str(filename)+'>'
-
-
-
-
-
 
 

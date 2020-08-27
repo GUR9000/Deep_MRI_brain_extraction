@@ -27,7 +27,7 @@ THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABI
 TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 """
-
+from __future__ import print_function
 import numpy as np
 
 import time
@@ -85,7 +85,6 @@ def train_net(cnn, patchCreator, LR_start , num_patches_per_batch = 1,
     NLL_history = []
     NLL_history_size = 500 #only the most recent 500 values are kept
 
-
     if num_patches_per_batch!=1:
         assert int(num_patches_per_batch)==num_patches_per_batch
         assert num_patches_per_batch>=2
@@ -95,19 +94,13 @@ def train_net(cnn, patchCreator, LR_start , num_patches_per_batch = 1,
         data = np.zeros((num_patches_per_batch,)+data.shape[1:],"float32")
         labels_proto = np.zeros((num_patches_per_batch,)+labels_proto.shape[1:], labels_proto.dtype)
 
-
-    print "data_augmentation =",b_use_data_augmentation
-    print
-
+    print("data_augmentation =",b_use_data_augmentation)
+    print()
 
     nit=0# iteration number
-#    trailing_mean_NLL=0.7
-
-
     training_mode = 1
 
-
-    print "Trigger KeyboardInterrupt (Ctrl+C) to end training prematurely"
+    print("Trigger KeyboardInterrupt (Ctrl+C) to end training prematurely")
     while done_looping==False:
         try:
             while done_looping==False:
@@ -143,21 +136,9 @@ def train_net(cnn, patchCreator, LR_start , num_patches_per_batch = 1,
                     else:
                         labels = labels_proto.flatten()
 
-
-
-                nll = cnn.training_step(data, labels, mode=training_mode)
-                
-#                ret = cnn.debug_gradients_function(data,labels)
-#                print 'len(ret)',len(ret)
-#                for gr in ret:
-#                    print np.min(gr), np.mean(np.abs(gr)), np.median(np.abs(gr)), np.max(gr)
-#                print
-                
+                nll = cnn.training_step(data, labels, mode=training_mode)            
                 NLL_history.append(nll)
-#                trailing_mean_NLL = 0.995* trailing_mean_NLL + 0.005* xnll
-
                 nit+=1;
-
                 if nit%10 == 0:
                     NLL_history = NLL_history[-NLL_history_size:]
                     xnll = np.mean(NLL_history)
@@ -169,18 +150,12 @@ def train_net(cnn, patchCreator, LR_start , num_patches_per_batch = 1,
 
                     GLogger.log_and_print(["Iteration =",nit,"avg. NLL =", xnll])
 
-
-
         except KeyboardInterrupt:
-            print "Training terminated via ctrl+C"
+            print("Training terminated via ctrl+C")
             break
-
-#    cnn.SaveParameters("end_"+str(save_name)+".save")
     cnn.SaveParameters(save_name+"/end_"+str(save_name)+".save")
-
     GLogger.close()
     return 0
-
 
 
 def Build3D(nnet_args, n_labels_per_batch = 300,  patch_depth = 1, actfunc='relu',
@@ -192,9 +167,7 @@ def Build3D(nnet_args, n_labels_per_batch = 300,  patch_depth = 1, actfunc='relu
             gradient_clipping = True, bWeightDecay = True):
     """build net, load samples (patchCreator)"""
 
-
     _type = actfunc
-
 
     filter_sizes = nnet_args["filter_sizes"]
     pooling_factors = nnet_args["pooling_factors"]
@@ -207,8 +180,6 @@ def Build3D(nnet_args, n_labels_per_batch = 300,  patch_depth = 1, actfunc='relu
     except:
         _type = (_type,)*len(nof_filters)
 
-
-
     patchCreator = helper.PatchCreator(filter_sizes, pooling_factors, n_labels_per_batch=n_labels_per_batch,
                                        override_data_set_filenames=override_data_set_filenames,
                                        data_init_preserve_channel_scaling=data_init_preserve_channel_scaling,
@@ -216,15 +187,12 @@ def Build3D(nnet_args, n_labels_per_batch = 300,  patch_depth = 1, actfunc='relu
                                        use_max_fragment_pooling = use_fragment_pooling, 
                                        auto_threshold_labels=auto_threshold_labels,
                                        pad_last_dimension = not notrain)
-
-    print 'Building CNN...'
+    print('Building CNN...')
     cnn = MixedConvNN( patchCreator.CNET_Input_Size, ImageDepth = input_to_cnn_depth, InputImageDimensions = 3,
                       bDropoutEnabled_ = bDropoutEnabled, bSupportVariableBatchsize=0, 
                       batchsize=num_patches_per_batch, verbose = 0, bWeightDecay = bWeightDecay)
 
-
     for i,nf,fs,pf in zip(range(len(nof_filters)),nof_filters, filter_sizes, pooling_factors):
-
         is_last_layer = (i==len(nof_filters)-1)
         cnn.addConvLayer( nf, fs, pooling_factor = pf, ActivationFunction=_type[i], ndim=3,
                          b_forceNoDropout = is_last_layer, bTheanoConv=1,
@@ -236,21 +204,16 @@ def Build3D(nnet_args, n_labels_per_batch = 300,  patch_depth = 1, actfunc='relu
     if gradient_clipping:
         cnn.enable_gradient_clipping(0.02)
 
-    print "Compiling Output Functions"
+    print("Compiling Output Functions")
     cnn.CompileOutputFunctions(b_isRegression = False,
                                b_ignore_pred_funct= not notrain, bUseModulatedNLL=0,
                                b_regression_with_margin=0, margin_reweighted_error=0,
                                override_training_loss_function=None)
 
-    
     cnn.CompileDebugFunctions(gradients=0)
-    print "done: Build3D()"
+    print("done: Build3D()")
     return cnn, patchCreator
 
 
-
-
 if __name__ == '__main__':
-    print "please execute main_train.py instead!"
-
-
+    print("please execute main_train.py instead!")

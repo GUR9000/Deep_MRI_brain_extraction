@@ -27,7 +27,7 @@ THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABI
 TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 """
-
+from __future__ import print_function
 import time
 import numpy
 import numpy as np
@@ -54,10 +54,10 @@ def extract_filename(string, remove_trailing_ftype=True, trailing_type_max_len=7
         file_name=B
     return path, file_name
 
+
 def mkdir(path):
     if len(path)>1 and _exists(path)==0:
         _makedirs(path)
-
 
 
 def load_text(fname, SplitLines=False):
@@ -72,7 +72,6 @@ def load_text(fname, SplitLines=False):
         return "".join(text).split('\n')
     else:
         return "".join(text)
-
 
 
 class Logger():
@@ -96,6 +95,7 @@ class Logger():
 
         self._alive = True
 
+
     def log(self, string, append_endline = True):
         assert self._alive
         if not isinstance(string,str):
@@ -110,6 +110,7 @@ class Logger():
                 self._last_flush = time.time()
         except:
             print("STRING IS IVALID! <",string,'>')
+
 
     def log_and_print(self, string_or_list):
         """If input is a list, then <" ".join(string_or_list)> will be printed and logged to the file. The elements must not be strings (this function does transform it if necessary)"""
@@ -129,12 +130,12 @@ class Logger():
             self._logf.close()
             self._alive = False
 
+
     def __del__(self):
         try:
             self.close()
         except:
             pass
-
 
 
 class LR_scheduler(object):
@@ -154,7 +155,6 @@ class LR_scheduler(object):
                  automated_kill_if_bad__killscore                = 0.1
                  ):
         """
-
 
         automated_LR_scaling_magnitude = 0.5:
             usually: no need to change this!
@@ -215,7 +215,6 @@ class LR_scheduler(object):
         #######################################################################
 
 
-
     def tick(self, current_step, current_score):
         """
         updates LR if appropriate.
@@ -233,18 +232,16 @@ class LR_scheduler(object):
 
         """
 
-#        print 'current_step', current_step,'current_score', current_score
-
         terminate_training = False
 
         if self._max_training_steps is not None:
             if (current_step >= self._max_training_steps):
-                print self,":: Training stopped as the iteration limit was reached!"
+                print(self,":: Training stopped as the iteration limit was reached!")
                 terminate_training = True
 
         if self._max_training_time_minutes is not None:
             if (time.clock() - self._training_start_time)/60. > self._max_training_time_minutes:
-                print self,":: Training stopped as the time limit was reached!"
+                print(self,":: Training stopped as the time limit was reached!")
                 terminate_training = True
 
         if self._automated_LR_scaling_enabled:
@@ -256,30 +253,29 @@ class LR_scheduler(object):
                     old = self._cnn.get_SGD_LR()
                     self._automated_LR_scaling_last_step_active = current_step
                     self._cnn.set_SGD_LR( np.float32( self._automated_LR_scaling_magnitude * old))
-                    print self,":: AUTOMATED LR-control: Reducing LR:  old value was "+str(old)+" new value is "+str(self._cnn.get_SGD_LR())
+                    print(self,":: AUTOMATED LR-control: Reducing LR:  old value was "+str(old)+" new value is "+str(self._cnn.get_SGD_LR()))
                     self._automated_LR_reduction_steps_so_far += 1
 
                     if 1./(self._automated_LR_scaling_magnitude**self._automated_LR_reduction_steps_so_far) >= self._automated_LR_scaling_max_LR_reduction_factor_before_termination:
                         terminate_training = True
-                        print self,":: AUTOMATED LR-control: Terminating training as maximum reduction rate was reached."
+                        print(self,":: AUTOMATED LR-control: Terminating training as maximum reduction rate was reached.")
 
         if self._automated_kill_if_bad_enabled and time.clock() - self._training_start_time > self._automated_kill_if_bad__time_of_decision_minutes*60:
             if current_score < self._automated_kill_if_bad__killscore:
-                print self,":: AUTOMATED LR-control: Terminating training as score is too low."
+                print(self,":: AUTOMATED LR-control: Terminating training as score is too low.")
                 terminate_training = True
 
         # early kill
         if self._automated_kill_after_n_unchanged_steps is not None:
             if (current_step - self._automated_LR_reduction__best_score_at_step) > self._automated_kill_after_n_unchanged_steps:
                 terminate_training = True
-                print self,":: AUTOMATED Kill-control: Terminating training as unchanged accuracy for "+str(self._automated_kill_after_n_unchanged_steps)+" steps."
-
-#        print self.__dict__
+                print(self,":: AUTOMATED Kill-control: Terminating training as unchanged accuracy for "+str(self._automated_kill_after_n_unchanged_steps)+" steps.")
 
         return terminate_training
-        #######################################################################
+
 
 ###############################################################################
+
 
 class AutosaveControl:
     def __init__(self, cnn, training_time_minutes = 120, LR_start = 9e-5, LR_end = 5e-6, save_name="auto",
@@ -303,14 +299,12 @@ class AutosaveControl:
         self.LR_totalDiff = LR_end-LR_start
         self.CNN=cnn
         self.exponential_interpolation=exponential_interpolation
-        print "Autosaver:: saving interval set to",self.autosave_frequency,"minutes"#. Total training time is:",self.training_termination_time/60.0,"minutes (",self.training_termination_time/60.0**2,"h)"
-        #print "AutosaveControl:: Controls now the momentum! scanning from 0.5 to 0.95 (reaches 0.9 after 80% of the time passed)"
-
-#        print "AUTO-LR-Control:: initial LR =",LR_start,"final LR will be:",LR_end,(". Linear interpolation." if not exponential_interpolation else ". Exponential interpolation (decay).")
-        #######################################################################
-
+        print("Autosaver:: saving interval set to",self.autosave_frequency,"minutes")
+        
+        
     def time_passed(self):
         return (time.clock() - self.training_start_time)
+
 
     def tick(self, iter_count, additional_save_string = "", force_save = False, update_LR = True):
         """ returns True if training should END"""
@@ -329,36 +323,16 @@ class AutosaveControl:
                 else:
                     new_LR = self.LR_start*((self.LR_end/self.LR_start)**self.ratio_done())
                 self.CNN.set_SGD_LR(new_LR)
-            #self.CNN.set_SGD_Momentum(0.5 + n.sqrt(self.ratio_done())*0.45)
             self.autosave_last_printed = time.clock()
             tmin = ((time.clock()-self.training_start_time)/60.)
-#            print self.ratio_done()*100.0,' % done'
-            print "Training time so far =",int(tmin/60),'h',int(tmin%60),"min. Speed:",(iter_count/(time.clock()-self.training_start_time)),"batches/s"
-
+            print("Training time so far =",int(tmin/60),'h',int(tmin%60),"min. Speed:",(iter_count/(time.clock()-self.training_start_time)),"batches/s")
         return False
-        #######################################################################
+
 
     def ratio_done(self):#0 to 1
         return (time.clock() - self.training_start_time)/self.training_termination_time
 
+
     def set_lr(self,lr):
         self.LR_start = np.float32(lr)
         self.LR_totalDiff =  self.LR_start/10.0 - self.LR_start
-        #######################################################################
-###############################################################################
-
-#----------------------------------------------------------------------
-
-
-
-
-
-
-
-
-
-
-
-
-
-

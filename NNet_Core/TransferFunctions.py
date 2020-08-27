@@ -28,9 +28,8 @@ THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABI
 TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 """
-
+from __future__ import print_function
 import theano.tensor as T
-
 
 
 def parse_transfer_function(string_identifier, slope_parameter = None):
@@ -45,7 +44,6 @@ def parse_transfer_function(string_identifier, slope_parameter = None):
     """
     cross_channel_pooling_groups=None
     
-    
     if string_identifier=='tanh':
         Activation_f = T.tanh
     elif string_identifier in ['ReLU', 'relu']: #rectified linear unit
@@ -59,7 +57,7 @@ def parse_transfer_function(string_identifier, slope_parameter = None):
         Activation_f = T.abs_
     elif string_identifier in ['plu','PLu','PLU','piecewise']: #piece-wise linear function
         string_identifier = "PLU"
-        print "parse_transfer_function::Remember to optimize the 'slope_parameter'"
+        print("parse_transfer_function::Remember to optimize the 'slope_parameter'")
         assert slope_parameter is not None,"...and better pass it to this function, as well! (type: Theano.Tensor, shape: same as activation, unif. random values [-1,1] should be fine)"
         Activation_f = lambda x: T.maximum(0,x) + T.minimum(0,x) * slope_parameter
     elif "maxout" in string_identifier:
@@ -72,9 +70,3 @@ def parse_transfer_function(string_identifier, slope_parameter = None):
     else:
         raise NotImplementedError()
     return Activation_f, string_identifier, {"cross_channel_pooling_groups":cross_channel_pooling_groups}
-
-
-
-
-
-

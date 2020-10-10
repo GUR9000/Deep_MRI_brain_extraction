@@ -1,3 +1,4 @@
+from __future__ import print_function
 """
 This software is an implementation of
 
@@ -26,9 +27,6 @@ THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRI
 THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
 TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-"""
-
-"""
 
 example (2D CNN):
 
@@ -68,7 +66,7 @@ ConvPoolLayer::init().
 
 
 """
-from __future__ import print_function
+
 
 import cPickle
 import time

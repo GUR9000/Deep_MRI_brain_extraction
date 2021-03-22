@@ -46,14 +46,14 @@ We strongly suggest using a GPU if speed is of necessity, as speedups of ~ 40x a
 #### Prerequisites
 
 ** Python 2:
-We recommend the use of Anaconda (https://www.continuum.io/downloads), especially for Windows users.
+We recommend the use of Anaconda (https://www.anaconda.com/products/individual#Downloads), especially for Windows users.
 
 ** Theano -- 
 
 This is a GPU-toolkit which our code uses to build and train convolutional neural networks.
 It is straight forward to get working with GPUs on Linux, but slightly harder on Windows
 
-E.g. see: http://deeplearning.net/software/theano/install.html
+E.g. see: https://pypi.org/project/Theano/
 
 A quick summary to install Theano for Windows users:
 1) Install Anaconda (Python 2.7+ but not 3.x, x64)
